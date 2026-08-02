@@ -27,6 +27,7 @@ from dataclasses import asdict
 import logging
 import os
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import uvicorn
@@ -92,10 +93,19 @@ class PredictionResponse(BaseModel):
     """Consolidated response payload mapping to requirement specification."""
     abandonment_probability: float = Field(..., description="XGBoost prediction probability [0, 1]")
     prediction: bool = Field(..., description="Decision boundary classification (True = Abandon)")
-    root_cause: str = Field(..., description="Inferred root cause reason for abandonment")
+    root_cause: str = Field(..., description="Primary inferred root cause reason")
+    secondary_cause: Optional[str] = Field("None", description="Secondary root cause factor")
     recommended_intervention: str = Field(..., description="RAG retrieved specific intervention")
     confidence: float = Field(..., description="Computed decision confidence score [0, 1]")
+    confidence_score: int = Field(..., description="Confidence score out of 100")
+    action_tier: str = Field(..., description="Action gate tier: FULL, LOW_COST, INFO_ONLY, NOOP")
+    action_explanation: str = Field(..., description="Action gate rationale")
+    max_allowable_discount_pct: float = Field(..., description="Maximum allowable margin discount %")
+    engine_mode: str = Field(..., description="Engine execution mode: LLM_GEMINI or HEURISTIC_RULE_BASED")
+    latency_ms: float = Field(..., description="E2E request decision latency in milliseconds")
     top_features: List[FeatureAttribution] = Field(..., description="Top 5 SHAP drivers driving this score")
+    evidence_trail: Optional[List[Dict[str, Any]]] = Field(default=[], description="Structured evidence attribution sentences")
+    rejected_alternatives: Optional[List[Dict[str, Any]]] = Field(default=[], description="Eliminated alternative candidate explanations")
 
 
 class HealthResponse(BaseModel):
@@ -143,19 +153,19 @@ class PipelineService:
 
     def process_session(self, request: SessionRequest) -> PredictionResponse:
         """Execute the complete inference pipeline sequentially."""
+        t_start = time.perf_counter()
         session = request.session_data
 
         # --- Layer 1 & 2 & 3: Preprocess, Predict, and SHAP ---
-        # explain_session handles StandardScaler alignment and SHAP generation
         explanation = self.shap_engine.explain_session(
             session=session,
-            top_n=5  # Retrieve top 5 features
+            top_n=5
         )
 
         probability = explanation.abandonment_probability
         prediction = (explanation.predicted_class == "Likely Abandon")
         top_shap_features = [
-            {"feature": f.feature, "importance": f.importance, "direction": f.direction}
+            {"feature": f.feature, "importance": f.importance, "direction": f.direction, "value": session.get(f.feature, "N/A")}
             for f in explanation.top_features
         ]
 
@@ -169,10 +179,12 @@ class PipelineService:
         )
         root_cause = root_cause_res.root_cause
         cause_conf = root_cause_res.confidence
+        secondary_cause = getattr(root_cause_res, "secondary_cause", "General Hesitation")
 
         # --- Layer 5: RAG Retrieval ---
         # Assemble query context from top feature details
-        context_str = f"Inferred Root Cause: {root_cause}. Top SHAP Drivers: " + ", ".join(
+        category_name = request.product_metadata.get("category", "General") if request.product_metadata else "General"
+        context_str = f"Product Category: {category_name}. Inferred Root Cause: {root_cause}. Top SHAP Drivers: " + ", ".join(
             f"{f['feature']} ({f['importance']:+.3f})" for f in top_shap_features
         )
         retrieval_res = self.retriever.retrieve_interventions(
@@ -187,9 +199,13 @@ class PipelineService:
             abandonment_probability=probability,
             root_cause=root_cause,
             retrieved_knowledge=candidates,
+            top_shap_features=top_shap_features,
+            session_data=session,
         )
         intervention = rec_res.recommended_intervention
         cost = rec_res.business_cost
+        engine_mode = "LLM_GEMINI" if rec_res.source == "gemini" else "HEURISTIC_RULE_BASED"
+
         best_candidate = candidates[0] if candidates else {}
         sim_score = best_candidate.get("similarity_score", 0.70)
         success_rate = best_candidate.get("success_rate", 0.60)
@@ -203,10 +219,9 @@ class PipelineService:
             historical_success_rate=success_rate,
             business_cost=cost,
         )
-        # Normalise final confidence to 0-1 float to match schema specifications
         final_confidence = float(conf_res.confidence_score / 100.0)
+        total_latency_ms = round((time.perf_counter() - t_start) * 1000, 2)
 
-        # Assemble features payload
         attributions = [
             FeatureAttribution(
                 feature=f["feature"],
@@ -217,12 +232,21 @@ class PipelineService:
         ]
 
         return PredictionResponse(
-            abandonment_probability=probability,
+            abandonment_probability=round(probability, 4),
             prediction=prediction,
             root_cause=root_cause,
+            secondary_cause=secondary_cause,
             recommended_intervention=intervention,
-            confidence=final_confidence,
-            top_features=attributions
+            confidence=round(final_confidence, 4),
+            confidence_score=conf_res.confidence_score,
+            action_tier=conf_res.action_tier,
+            action_explanation=conf_res.action_explanation,
+            max_allowable_discount_pct=conf_res.max_allowable_discount_pct,
+            engine_mode=engine_mode,
+            latency_ms=total_latency_ms,
+            top_features=attributions,
+            evidence_trail=rec_res.evidence_trail or [],
+            rejected_alternatives=rec_res.rejected_alternatives or [],
         )
 
 
@@ -243,6 +267,69 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Latency Middleware (W1.6)
+@app.middleware("http")
+async def add_latency_header(request, call_next):
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    process_time_ms = round((time.perf_counter() - start_time) * 1000, 2)
+    response.headers["X-Response-Time-ms"] = str(process_time_ms)
+    return response
+
+# Feedback Persistence (W2.3)
+FEEDBACK_FILE = Path("feedback_store.json")
+
+class FeedbackItem(BaseModel):
+    sessionId: str
+    recommended_intervention: str
+    user_accepted: bool
+    rating: int = 5
+    comment: Optional[str] = ""
+
+@app.post("/feedback")
+def submit_feedback(item: FeedbackItem):
+    store = []
+    if FEEDBACK_FILE.exists():
+        try:
+            store = json.loads(FEEDBACK_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            store = []
+    record = item.dict()
+    record["timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    store.append(record)
+    FEEDBACK_FILE.write_text(json.dumps(store, indent=2), encoding="utf-8")
+    return {"status": "persisted", "total_feedback_count": len(store)}
+
+@app.get("/feedback")
+def get_feedback():
+    if FEEDBACK_FILE.exists():
+        try:
+            return json.loads(FEEDBACK_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            return []
+    return []
+
+# Counterfactual Simulator (W3.1)
+class CounterfactualRequest(BaseModel):
+    session_data: Dict[str, Any]
+
+@app.post("/counterfactual")
+def run_counterfactual_simulation(req: CounterfactualRequest):
+    sess = req.session_data
+    cart_total = float(sess.get("cart_value", sess.get("cart_total", 3000)))
+    price_sens = float(sess.get("price_sensitivity_score", 0.5))
+    shipping_ratio = float(sess.get("total_shipping_charges", 50)) / max(1.0, cart_total)
+    base_p = float(sess.get("abandonment_probability", 0.70))
+    
+    arms = [
+        {"arm": "CONTROL", "description": "No Intervention", "expected_conversion_rate": round(1.0 - base_p, 4), "cost": "None"},
+        {"arm": "DISCOUNT_10", "description": "10% Direct Discount Coupon", "expected_conversion_rate": round(min(0.95, (1.0 - base_p) + 0.35 * price_sens), 4), "cost": "Medium"},
+        {"arm": "FREE_SHIPPING", "description": "Free Shipping Guarantee", "expected_conversion_rate": round(min(0.95, (1.0 - base_p) + 0.40 * shipping_ratio), 4), "cost": "Low"},
+        {"arm": "NO_COST_EMI", "description": "No-Cost EMI & Pay Later", "expected_conversion_rate": round(min(0.95, (1.0 - base_p) + (0.30 if cart_total > 2000 else 0.10)), 4), "cost": "Low"},
+        {"arm": "TRUST_DELIVERY_BADGE", "description": "Express Delivery & Trust Assurance", "expected_conversion_rate": round(min(0.95, (1.0 - base_p) + 0.25), 4), "cost": "None"},
+    ]
+    return {"session_id": sess.get("sessionId", "sim-session"), "baseline_abandon_risk": base_p, "counterfactual_arms": arms}
 
 # In-memory datastore mapping sessionId -> data
 db_events: Dict[str, List[Dict[str, Any]]] = {}

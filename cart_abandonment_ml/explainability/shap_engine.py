@@ -166,21 +166,28 @@ class ShapEngine:
     # Artifact loaders
     # ------------------------------------------------------------------
 
-    def _load_classifier(self) -> xgb.XGBClassifier:
-        path = self._model_dir / "classifier.json"
+    def _load_classifier(self) -> Any:
+        path = self._model_dir / "classifier.pkl"
         if not path.is_file():
-            # Fallback to .pkl
-            path = self._model_dir / "classifier.pkl"
+            path = self._model_dir / "classifier.json"
         if not path.is_file():
             raise FileNotFoundError(
                 f"Classifier not found in {self._model_dir}. "
                 "Run: python -m cart_abandonment_ml.training.train"
             )
-        if path.suffix == ".pkl":
-            clf = joblib.load(path)
-        else:
-            clf = xgb.XGBClassifier()
-            clf.load_model(str(path))
+        try:
+            if path.suffix == ".pkl":
+                clf = joblib.load(path)
+            else:
+                clf = xgb.XGBClassifier()
+                clf.load_model(str(path))
+        except Exception as exc:
+            logger.warning("Primary model load failed (%s). Falling back to joblib.load(model.pkl)...", exc)
+            fallback_pkl = self._model_dir / "model.pkl"
+            if fallback_pkl.is_file():
+                clf = joblib.load(fallback_pkl)
+            else:
+                raise exc
         logger.info("Classifier loaded from %s", path)
         return clf
 

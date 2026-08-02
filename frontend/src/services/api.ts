@@ -1,8 +1,8 @@
 import axios from 'axios';
 import type { LoggedEvent } from '../store/useStore';
 
-// The FastAPI backend runs on localhost:8000 by default (set via config.py)
-const API_BASE_URL = 'http://127.0.0.1:8000';
+// The FastAPI backend runs on localhost:8080
+const API_BASE_URL = 'http://127.0.0.1:8080';
 
 const client = axios.create({
   baseURL: API_BASE_URL,

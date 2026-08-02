@@ -74,6 +74,14 @@ class RecommendationResult:
     confidence_score: float
     source: str  # "gemini" or "fallback_heuristic"
     latency_ms: float = 0.0
+    evidence_trail: List[Dict[str, Any]] = None
+    rejected_alternatives: List[Dict[str, Any]] = None
+
+    def __post_init__(self):
+        if self.evidence_trail is None:
+            self.evidence_trail = []
+        if self.rejected_alternatives is None:
+            self.rejected_alternatives = []
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -159,6 +167,61 @@ class PromptBuilder:
 
 
 # ===========================================================================
+# Evidence Trail & Rejected Alternatives Builders (W1.1)
+# ===========================================================================
+
+def build_evidence_trail(
+    shap_features: Optional[List[Dict[str, Any]]] = None,
+    session_data: Optional[Dict[str, Any]] = None,
+    root_cause: str = ""
+) -> List[Dict[str, Any]]:
+    """Map top SHAP feature attributions and session signals to human evidence sentences."""
+    evidence = []
+    if shap_features:
+        for feat in shap_features[:5]:
+            fname = feat.get("feature", "unknown_feature")
+            imp = float(feat.get("importance", feat.get("shap_value", 0.0)))
+            val = feat.get("value", "N/A")
+            direction = "increases_risk" if imp >= 0 else "decreases_risk"
+            
+            clean_name = fname.replace("_", " ").title()
+            sentence = f"Feature '{clean_name}' (val: {val}) {direction.replace('_', ' ')} for root cause '{root_cause}'."
+            evidence.append({
+                "feature": fname,
+                "value": val,
+                "importance": round(imp, 4),
+                "direction": direction,
+                "target_cause": root_cause,
+                "evidence_sentence": sentence,
+            })
+    return evidence
+
+
+def build_rejected_alternatives(
+    selected_doc_id: str,
+    retrieved_knowledge: List[Dict[str, Any]],
+    abandonment_probability: float
+) -> List[Dict[str, Any]]:
+    """Explain why alternative candidates were eliminated."""
+    rejected = []
+    for item in retrieved_knowledge:
+        doc_id = item.get("document_id", "N/A")
+        if doc_id == selected_doc_id:
+            continue
+        cost_str = str(item.get("business_cost", "")).lower()
+        if ("medium" in cost_str or "high" in cost_str) and abandonment_probability < 0.75:
+            reason = f"Candidate {doc_id} rejected: Discount cost violates margin rule for moderate risk ({abandonment_probability:.2f} < 0.75)."
+        else:
+            reason = f"Candidate {doc_id} rejected: Lower overall efficiency score than selected strategy."
+        rejected.append({
+            "candidate_id": doc_id,
+            "recommended_intervention": item.get("recommended_intervention", ""),
+            "reason": reason,
+        })
+    return rejected
+
+
+# ===========================================================================
 # Heuristic fallback — used when Gemini is unavailable
 # ===========================================================================
 
@@ -166,6 +229,7 @@ def _heuristic_recommendation(
     abandonment_probability: float,
     root_cause: str,
     retrieved_knowledge: List[Dict[str, Any]],
+    top_shap_features: Optional[List[Dict[str, Any]]] = None,
 ) -> RecommendationResult:
     """Rule-based synthesis fallback.
 
@@ -175,6 +239,8 @@ def _heuristic_recommendation(
        then by success_rate descending.
     3. Return the top match.
     """
+    evidence = build_evidence_trail(top_shap_features, None, root_cause)
+
     if not retrieved_knowledge:
         return RecommendationResult(
             recommended_intervention="Trigger a standard cart abandonment reminder notification after 24 hours.",
@@ -184,6 +250,8 @@ def _heuristic_recommendation(
             priority="Low",
             confidence_score=0.90,
             source="fallback_heuristic",
+            evidence_trail=evidence,
+            rejected_alternatives=[],
         )
 
     # Cost mapping weights
@@ -192,7 +260,6 @@ def _heuristic_recommendation(
     scored_candidates = []
     for item in retrieved_knowledge:
         cost_str = str(item.get("business_cost", "none")).lower()
-        # Extract base cost token (e.g. "medium (direct discount)" -> "medium")
         base_cost = "none"
         for kw in ["none", "low", "medium", "high"]:
             if kw in cost_str:
@@ -201,22 +268,19 @@ def _heuristic_recommendation(
 
         cost_val = cost_weights.get(base_cost, 1)
 
-        # Rule 1: Avoid medium/high cost if abandonment probability is moderate
         is_discount = base_cost in ["medium", "high"]
         if is_discount and abandonment_probability < 0.75:
-            # penalise cost score significantly
             cost_val += 10
 
         success = float(item.get("success_rate", 0.0))
-
-        # We want to MINIMISE cost and MAXIMISE success
-        # Score = success / cost_val
         score = success / cost_val
         scored_candidates.append((score, base_cost, item))
 
-    # Sort descending by score
     scored_candidates.sort(key=lambda x: x[0], reverse=True)
     best_cost, best_doc = scored_candidates[0][1], scored_candidates[0][2]
+    selected_id = best_doc.get("document_id", "DOC-UNKNOWN")
+
+    rejected = build_rejected_alternatives(selected_id, retrieved_knowledge, abandonment_probability)
 
     priority = (
         "High" if abandonment_probability >= 0.75
@@ -227,7 +291,7 @@ def _heuristic_recommendation(
     return RecommendationResult(
         recommended_intervention=best_doc.get("recommended_intervention", ""),
         reason=(
-            f"Heuristic fallback: Selected candidate {best_doc.get('document_id')} matching root cause '{root_cause}'. "
+            f"Heuristic fallback: Selected candidate {selected_id} matching root cause '{root_cause}'. "
             f"Cost '{best_cost}' prioritised for conversion rate optimization relative to abandonment risk ({abandonment_probability:.2f})."
         ),
         expected_success_rate=float(best_doc.get("success_rate", 0.5)),
@@ -235,6 +299,8 @@ def _heuristic_recommendation(
         priority=priority,
         confidence_score=0.85,
         source="fallback_heuristic",
+        evidence_trail=evidence,
+        rejected_alternatives=rejected,
     )
 
 
@@ -310,6 +376,8 @@ class RecommenderAgent:
         root_cause: str,
         retrieved_knowledge: List[Dict[str, Any]],
         business_rules: Optional[Dict[str, Any]] = None,
+        top_shap_features: Optional[List[Dict[str, Any]]] = None,
+        session_data: Optional[Dict[str, Any]] = None,
     ) -> RecommendationResult:
         """Generate the structured recommendation.
 
@@ -323,12 +391,17 @@ class RecommenderAgent:
             Candidate documents from RAG search.
         business_rules : dict, optional
             Additional contextual business constraints.
+        top_shap_features : list[dict], optional
+            SHAP attributions for evidence trail mapping.
+        session_data : dict, optional
+            Raw session signals for evidence trail.
         """
         t0 = time.perf_counter()
+        evidence = build_evidence_trail(top_shap_features, session_data, root_cause)
 
         # Heuristic path
         if self._model is None:
-            res = _heuristic_recommendation(abandonment_probability, root_cause, retrieved_knowledge)
+            res = _heuristic_recommendation(abandonment_probability, root_cause, retrieved_knowledge, top_shap_features)
             res.latency_ms = round((time.perf_counter() - t0) * 1000, 2)
             return res
 
@@ -345,8 +418,19 @@ class RecommenderAgent:
             latency_ms = (time.perf_counter() - t0) * 1000
 
             parsed = self._parse_response(raw)
+            rec_text = parsed["recommended_intervention"]
+            
+            # Find matching doc ID if any
+            selected_doc_id = "CUSTOM_LLM"
+            for doc in retrieved_knowledge:
+                if doc.get("recommended_intervention") == rec_text:
+                    selected_doc_id = doc.get("document_id", "CUSTOM_LLM")
+                    break
+            
+            rejected = build_rejected_alternatives(selected_doc_id, retrieved_knowledge, abandonment_probability)
+
             return RecommendationResult(
-                recommended_intervention=parsed["recommended_intervention"],
+                recommended_intervention=rec_text,
                 reason=parsed["reason"],
                 expected_success_rate=parsed["expected_success_rate"],
                 business_cost=parsed["business_cost"],
@@ -354,11 +438,13 @@ class RecommenderAgent:
                 confidence_score=parsed["confidence_score"],
                 source="gemini",
                 latency_ms=round(latency_ms, 2),
+                evidence_trail=evidence,
+                rejected_alternatives=rejected,
             )
 
         except Exception as exc:
             logger.warning("Recommender Gemini call failed: %s. Falling back to rules.", exc)
-            res = _heuristic_recommendation(abandonment_probability, root_cause, retrieved_knowledge)
+            res = _heuristic_recommendation(abandonment_probability, root_cause, retrieved_knowledge, top_shap_features)
             res.latency_ms = round((time.perf_counter() - t0) * 1000, 2)
             return res
 

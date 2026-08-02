@@ -68,6 +68,9 @@ class ConfidenceScoreResult:
     """Final output from the Confidence Scoring Engine."""
     confidence_score: int                 # 0 to 100
     confidence_level: str                 # "HIGH" | "MEDIUM" | "LOW"
+    action_tier: str                      # "FULL" | "LOW_COST" | "INFO_ONLY" | "NOOP"
+    action_explanation: str               # Human-readable rationale for action tier
+    max_allowable_discount_pct: float    # Max discount allowed under margin rules
     formula_explanation: str
     breakdown: ConfidenceBreakdown
 
@@ -75,6 +78,9 @@ class ConfidenceScoreResult:
         return {
             "confidence_score": self.confidence_score,
             "confidence_level": self.confidence_level,
+            "action_tier": self.action_tier,
+            "action_explanation": self.action_explanation,
+            "max_allowable_discount_pct": self.max_allowable_discount_pct,
             "formula_explanation": self.formula_explanation,
             "breakdown": asdict(self.breakdown),
         }
@@ -174,13 +180,28 @@ class ConfidenceEngine:
         # Ensure within bounds [0, 100]
         final_score = max(0, min(100, final_score))
 
-        # Classify confidence level
-        if final_score >= 75:
+        # Classify confidence level & action gating ladder (W1.2)
+        conf_ratio = final_score / 100.0
+        if final_score >= 85:
             level = "HIGH"
-        elif final_score >= 45:
-            level = "MEDIUM"
+            action_tier = "FULL"
+            action_explanation = "High confidence (≥85%): Authorized for high-impact full intervention and dynamic discounts."
+            max_discount_pct = 15.0
+        elif final_score >= 60:
+            level = "HIGH" if final_score >= 75 else "MEDIUM"
+            action_tier = "LOW_COST"
+            action_explanation = "Moderate confidence (≥60%): Restricted to low-cost soft nudges or free shipping incentives."
+            max_discount_pct = 8.0
+        elif final_score >= 35:
+            level = "MEDIUM" if final_score >= 45 else "LOW"
+            action_tier = "INFO_ONLY"
+            action_explanation = "Low-to-medium confidence (≥35%): Restricted to zero-cost informational badges & urgency signals."
+            max_discount_pct = 0.0
         else:
             level = "LOW"
+            action_tier = "NOOP"
+            action_explanation = "Low confidence (<35%): Action gated to NOOP to prevent unnecessary friction and revenue leakage."
+            max_discount_pct = 0.0
 
         # Math formula details
         formula_text = (
@@ -192,6 +213,9 @@ class ConfidenceEngine:
         return ConfidenceScoreResult(
             confidence_score=final_score,
             confidence_level=level,
+            action_tier=action_tier,
+            action_explanation=action_explanation,
+            max_allowable_discount_pct=max_discount_pct,
             formula_explanation=formula_text,
             breakdown=ConfidenceBreakdown(
                 model_probability_certainty=round(c_prob, 4),
