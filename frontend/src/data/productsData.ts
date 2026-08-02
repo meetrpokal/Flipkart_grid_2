@@ -1,6 +1,322 @@
 import type { Product } from '../types/product';
+import { generate45Reviews } from './reviewsGenerator';
 
 export const INITIAL_PRODUCTS: Product[] = [
+  // 1. SMARTPHONES & FLAGSHIPS
+  {
+    id: "prod-11",
+    name: "Apple iPhone 15 Pro (128GB - Natural Titanium)",
+    brand: "Apple",
+    category: "Smartphones",
+    rating: 4.7,
+    ratingCount: 8450,
+    reviewCount: 1820,
+    seller: "SuperComNet",
+    sellerRating: "4.9 / 5",
+    price: 134900,
+    originalPrice: 134900,
+    discount: 0.08,
+    isFlipkartAssured: true,
+    image: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=800&auto=format&fit=crop&q=80"
+    ],
+    description: "Forged in titanium featuring the groundbreaking A17 Pro chip, customizable Action button, 48MP Pro camera system with 3x Telephoto lens, and USB-C with USB 3 speeds.",
+    offers: [
+      { type: "Bank Offer", title: "Flat ₹5,000 Instant Cashback", detail: "Instant cashback on HDFC Bank Credit Cards" },
+      { type: "Partner Offer", title: "No Cost EMI up to 24 Months", detail: "Zero interest EMI on major credit cards" }
+    ],
+    specifications: {
+      "Display": "6.1-inch Super Retina XDR OLED (120Hz ProMotion)",
+      "Processor": "A17 Pro Chip (3nm)",
+      "Camera": "48MP Main + 12MP Ultra Wide + 12MP 3x Telephoto",
+      "Battery": "Up to 23 Hours Video Playback",
+      "Build": "Aerospace-grade Titanium Frame",
+      "Warranty": "1 Year Apple Brand Warranty"
+    },
+    aiSummary: {
+      overall: "Customers praise the lightweight Grade 5 titanium chassis, ProMotion 120Hz display, and A17 Pro gaming performance. Battery easily lasts full day.",
+      positive: ["Ultra-lightweight titanium body", "Stunning 48MP camera quality", "Blazing fast A17 Pro chip"],
+      negative: ["Charging adapter sold separately"]
+    },
+    frequentlyBoughtTogether: [
+      { id: "acc-ip-1", name: "Apple 20W USB-C Power Adapter", price: 1699, originalPrice: 1900, image: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=400&auto=format&fit=crop&q=80", defaultSelected: true },
+      { id: "acc-ip-2", name: "MagSafe Transparent Armor Case", price: 999, originalPrice: 2499, image: "https://images.unsplash.com/photo-1609592424109-dd9892f1b177?w=400&auto=format&fit=crop&q=80", defaultSelected: true }
+    ],
+    reviews: generate45Reviews("prod-11", "Apple iPhone 15 Pro", "Apple", "Smartphones", 4.7)
+  },
+
+  {
+    id: "prod-12",
+    name: "Samsung Galaxy S24 Ultra 5G (Titanium Gray, 256GB)",
+    brand: "Samsung",
+    category: "Smartphones",
+    rating: 4.6,
+    ratingCount: 6200,
+    reviewCount: 1410,
+    seller: "OmniTechRetail",
+    sellerRating: "4.8 / 5",
+    price: 129999,
+    originalPrice: 129999,
+    discount: 0.10,
+    isFlipkartAssured: true,
+    image: "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=800&auto=format&fit=crop&q=80"
+    ],
+    description: "Welcome to Galaxy AI. Capture 200MP detail with quad telephoto cameras, integrated S Pen, Snapdragon 8 Gen 3 for Galaxy, and anti-reflective Corning Gorilla Armor display.",
+    offers: [
+      { type: "Bank Offer", title: "Flat ₹10,000 Exchange Bonus", detail: "Additional exchange bonus on old smartphones" }
+    ],
+    specifications: {
+      "Display": "6.8-inch QHD+ Dynamic AMOLED 2X (2600 nits Peak)",
+      "Processor": "Snapdragon 8 Gen 3 for Galaxy",
+      "Camera": "200MP + 50MP 5x + 10MP 3x + 12MP Ultra Wide",
+      "S Pen": "Embedded Low-Latency Stylus",
+      "Warranty": "1 Year Samsung India Warranty"
+    },
+    aiSummary: {
+      overall: "Acclaimed for Galaxy AI translation tools, 100x Space Zoom camera capabilities, and bright anti-reflective screen.",
+      positive: ["200MP ultra camera detail", "Integrated S Pen functionality", "Gorilla Armor glare reduction"],
+      negative: ["Large form factor for one-handed use"]
+    },
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-12", "Samsung Galaxy S24 Ultra", "Samsung", "Smartphones", 4.6)
+  },
+
+  {
+    id: "prod-13",
+    name: "OnePlus 12 5G (Silky Black, 16GB RAM + 512GB)",
+    brand: "OnePlus",
+    category: "Smartphones",
+    rating: 4.5,
+    ratingCount: 5100,
+    reviewCount: 980,
+    seller: "RetailNet",
+    sellerRating: "4.7 / 5",
+    price: 69999,
+    originalPrice: 69999,
+    discount: 0.07,
+    isFlipkartAssured: true,
+    image: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800&auto=format&fit=crop&q=80"
+    ],
+    description: "Smooth Beyond Belief. Snapdragon 8 Gen 3, 4th Gen Hasselblad Camera for Mobile, 5400mAh battery with 100W SUPERVOOC and 50W AIRVOOC charging.",
+    offers: [
+      { type: "Bank Offer", title: "Instant ₹4,000 Off", detail: "Instant discount on ICICI & OneCard Cards" }
+    ],
+    specifications: {
+      "Display": "6.82-inch 2K 120Hz ProXDR AMOLED (4500 nits)",
+      "Processor": "Snapdragon 8 Gen 3",
+      "Battery & Charging": "5400 mAh with 100W Wired + 50W Wireless",
+      "Camera": "50MP Sony LYT-808 + 64MP Periscope + 48MP Wide",
+      "Warranty": "1 Year OnePlus Warranty"
+    },
+    aiSummary: {
+      overall: "Highly praised for 100W charging (0-100% in 26 mins), 4500 nits bright 2K display, and Hasselblad portrait photography.",
+      positive: ["Blazing 100W superfast charging", "Hasselblad color science", "Dual Cryo-velocity VC cooling"],
+      negative: ["Curved screen glass requires specialized screen guard"]
+    },
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-13", "OnePlus 12 5G", "OnePlus", "Smartphones", 4.5)
+  },
+
+  // 2. LAPTOPS & COMPUTING
+  {
+    id: "prod-14",
+    name: "Apple MacBook Air M3 (15.3-inch, 16GB, 512GB SSD)",
+    brand: "Apple",
+    category: "Laptops",
+    rating: 4.8,
+    ratingCount: 3900,
+    reviewCount: 760,
+    seller: "SuperComNet",
+    sellerRating: "4.9 / 5",
+    price: 154900,
+    originalPrice: 154900,
+    discount: 0.06,
+    isFlipkartAssured: true,
+    image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&auto=format&fit=crop&q=80"
+    ],
+    description: "Lean. Mean. M3 machine. Liquid Retina display, fanless silent design, up to 18 hours battery life, 1080p FaceTime HD camera, and MagSafe 3 charging.",
+    offers: [
+      { type: "Bank Offer", title: "Flat ₹10,000 Off", detail: "Instant discount on HDFC Bank Cards" }
+    ],
+    specifications: {
+      "Display": "15.3-inch Liquid Retina (2880 x 1864, 500 nits)",
+      "Processor": "Apple M3 chip (8-core CPU, 10-core GPU)",
+      "Memory & Storage": "16GB Unified Memory / 512GB SSD",
+      "Battery Life": "Up to 18 Hours",
+      "Weight": "1.51 kg",
+      "Warranty": "1 Year Apple Warranty"
+    },
+    aiSummary: {
+      overall: "Incredible 18-hour real world battery life, silent fanless operation, and immersive 6-speaker audio system.",
+      positive: ["All-day 18-hour battery", "Silent zero-fan design", "Stunning 15.3-inch Retina screen"],
+      negative: ["Midnight color attracts finger prints"]
+    },
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-14", "MacBook Air M3", "Apple", "Laptops", 4.8)
+  },
+
+  {
+    id: "prod-8c",
+    name: "ASUS ROG Strix G16 Gaming Laptop (16-inch, RTX 4070)",
+    brand: "ASUS",
+    category: "Laptops",
+    rating: 4.6,
+    ratingCount: 1890,
+    reviewCount: 410,
+    seller: "GamerNet",
+    sellerRating: "4.7 / 5",
+    price: 179990,
+    originalPrice: 179990,
+    discount: 0.15,
+    isFlipkartAssured: true,
+    image: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=800&auto=format&fit=crop&q=80"
+    ],
+    description: "Dominate the battlefield. 13th Gen Intel Core i9-13980HX, NVIDIA GeForce RTX 4070 8GB, ROG Intelligent Cooling with Conductonaut Extreme Liquid Metal.",
+    offers: [
+      { type: "Bank Offer", title: "Flat ₹7,500 Off", detail: "Instant discount on Axis Bank Credit Cards" }
+    ],
+    specifications: {
+      "Display": "16-inch QHD+ 240Hz/3ms ROG Nebula Display",
+      "Processor": "Intel Core i9-13980HX (24 cores)",
+      "GPU": "NVIDIA GeForce RTX 4070 8GB GDDR6 (140W TGP)",
+      "RAM & Storage": "32GB DDR5 4800MHz / 1TB PCIe 4.0 SSD",
+      "Warranty": "1 Year ASUS Onsite Warranty"
+    },
+    aiSummary: {
+      overall: "High FPS beast for AAA gaming and 4K video rendering. 240Hz Nebula screen is silky smooth.",
+      positive: ["Extremely high FPS on RTX 4070", "240Hz QHD+ Nebula panel", "Tri-Fan liquid metal cooling"],
+      negative: ["Power brick adapter is heavy"]
+    },
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-8c", "ASUS ROG Strix G16", "ASUS", "Laptops", 4.6)
+  },
+
+  // 3. AUDIO & WEARABLES
+  {
+    id: "prod-2e",
+    name: "Sony WH-1000XM5 Noise Canceling Headphones",
+    brand: "Sony",
+    category: "Electronics",
+    rating: 4.7,
+    ratingCount: 9200,
+    reviewCount: 2150,
+    seller: "SonyAuthorised",
+    sellerRating: "4.9 / 5",
+    price: 34990,
+    originalPrice: 34990,
+    discount: 0.14,
+    isFlipkartAssured: true,
+    image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800&auto=format&fit=crop&q=80"
+    ],
+    description: "Industry-leading noise canceling with two processors and 8 microphones. Precise Voice Pickup technology, 30-hour battery life, and ultra-comfortable lightweight design.",
+    offers: [
+      { type: "Bank Offer", title: "Flat ₹3,000 Off", detail: "Instant discount on All Bank Cards" }
+    ],
+    specifications: {
+      "Noise Cancellation": "Auto NC Optimizer with V1 & QN1 Processors",
+      "Battery Life": "30 Hours (ANC On)",
+      "Quick Charge": "3 mins = 3 hours playback",
+      "Audio Codec": "LDAC High-Res Audio Wireless",
+      "Warranty": "1 Year Sony India Warranty"
+    },
+    aiSummary: {
+      overall: "World-class active noise cancellation that silences flight cabin noise and office chatter. Supreme call microphone clarity.",
+      positive: ["Unmatched ANC performance", "Hi-Res LDAC sound stage", "Ultra light memory foam earcups"],
+      negative: ["Case does not fold completely flat"]
+    },
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-2e", "Sony WH-1000XM5", "Sony", "Electronics", 4.7)
+  },
+
+  {
+    id: "prod-2f",
+    name: "Apple AirPods Pro (2nd Gen) USB-C",
+    brand: "Apple",
+    category: "Electronics",
+    rating: 4.8,
+    ratingCount: 11400,
+    reviewCount: 3100,
+    seller: "SuperComNet",
+    sellerRating: "4.9 / 5",
+    price: 24900,
+    originalPrice: 24900,
+    discount: 0.10,
+    isFlipkartAssured: true,
+    image: "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=800&auto=format&fit=crop&q=80"
+    ],
+    description: "Re-architected H2 chip powers up to 2x more Active Noise Cancellation, Adaptive Audio, Transparency mode, and Personalized Spatial Audio with dynamic head tracking.",
+    offers: [
+      { type: "Bank Offer", title: "Flat ₹2,000 Off", detail: "Instant cashback on HDFC Bank Credit Cards" }
+    ],
+    specifications: {
+      "Chip": "Apple H2 Headphone Chip",
+      "Noise Control": "2x Active Noise Cancellation + Adaptive Audio",
+      "Charging Case": "MagSafe (USB-C) with Speaker & Lanyard Loop",
+      "Water Resistance": "IP54 Dust, Sweat, and Water Resistant",
+      "Warranty": "1 Year Apple Warranty"
+    },
+    aiSummary: {
+      overall: "Flawless integration with Apple ecosystem, transformative Active Noise Control, and spatial audio precision.",
+      positive: ["2x stronger noise cancellation", "Adaptive Transparency mode", "Precise Find My speaker case"],
+      negative: ["Silicone tips require periodic cleaning"]
+    },
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-2f", "Apple AirPods Pro 2", "Apple", "Electronics", 4.8)
+  },
+
+  {
+    id: "prod-2g",
+    name: "Noise ColorFit Pro 4 Max Smartwatch",
+    brand: "Noise",
+    category: "Electronics",
+    rating: 4.2,
+    ratingCount: 4890,
+    reviewCount: 890,
+    seller: "OmniTechRetail",
+    sellerRating: "4.4 / 5",
+    price: 5999,
+    originalPrice: 5999,
+    discount: 0.60,
+    isFlipkartAssured: true,
+    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80"
+    ],
+    description: "1.80-inch TFT display, Tru Sync Bluetooth Calling, built-in Alexa voice assistant, 100+ sports modes, 150+ watch faces, and 7-day battery backup.",
+    offers: [
+      { type: "Bank Offer", title: "Extra 5% Off", detail: "5% cashback on Flipkart Axis Bank Card" }
+    ],
+    specifications: {
+      "Display": "1.80-inch TFT LCD (240 x 286 px)",
+      "Calling": "Tru Sync Bluetooth Calling",
+      "Voice Assistant": "Built-in Amazon Alexa",
+      "Health Sensors": "SpO2, 24x7 Heart Rate, Stress, Sleep",
+      "Warranty": "1 Year Noise Warranty"
+    },
+    aiSummary: {
+      overall: "Great budget smartwatch with loud Bluetooth calling speaker, Alexa voice integration, and accurate step tracking.",
+      positive: ["Loud Bluetooth calling", "Built-in Alexa support", "7-day battery life"],
+      negative: ["App sync takes 5-10 seconds on boot"]
+    },
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-2g", "Noise ColorFit Pro 4", "Noise", "Electronics", 4.2)
+  },
+
+  // 4. EXISTING CATALOG ENRICHED WITH 42 REVIEWS EACH
   {
     id: "prod-1",
     name: "Flipkart SmartBuy 20000mAh Power Bank",
@@ -18,69 +334,25 @@ export const INITIAL_PRODUCTS: Product[] = [
     image: "https://images.unsplash.com/photo-1609592424109-dd9892f1b177?w=800&auto=format&fit=crop&q=80",
     images: [
       "https://images.unsplash.com/photo-1609592424109-dd9892f1b177?w=800&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1622445268465-840246e47683?w=800&auto=format&fit=crop&q=80"
+      "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800&auto=format&fit=crop&q=80"
     ],
-    description: "Fast charging 20000mAh lithium polymer power bank with dual USB outputs, 22.5W Power Delivery, and Type-C input support. Features multi-layer circuit protection.",
+    description: "Fast charging 20000mAh lithium polymer power bank with dual USB outputs, 22.5W Power Delivery, and Type-C input support.",
     offers: [
-      { type: "Bank Offer", title: "5% Unlimited Cashback", detail: "5% Cashback on Flipkart Axis Bank Credit Card T&C" },
-      { type: "Partner Offer", title: "Surprise Coupon", detail: "Get ₹200 extra discount coupon on your next electronic accessories purchase" },
-      { type: "Financing", title: "No Cost EMI", detail: "No cost EMI starting from ₹317/month with Bajaj Finserv & major bank credit cards" }
+      { type: "Bank Offer", title: "5% Unlimited Cashback", detail: "5% Cashback on Flipkart Axis Bank Credit Card T&C" }
     ],
     specifications: {
       "Model Name": "SmartBuy PD 20000",
       "Capacity": "20000 mAh",
       "Output Power": "22.5 W Fast Charge",
-      "Input Ports": "Type-C & Micro USB",
-      "Output Ports": "2 x USB-A, 1 x Type-C",
-      "Battery Type": "Lithium Polymer",
       "Warranty": "1 Year Domestic Brand Warranty"
     },
     aiSummary: {
-      overall: "Customers highly appreciate the fast charging speed, massive 20,000mAh battery backup, and durable build quality. Most negative feedback relates to slightly heavy weight.",
+      overall: "Customers highly appreciate the fast charging speed, massive 20,000mAh battery backup, and durable build quality.",
       positive: ["22.5W Fast Power Delivery", "Durable build finish", "Charges phone up to 4 times"],
-      negative: ["Slightly heavy in pocket", "Wall charger plug not included"]
+      negative: ["Slightly heavy in pocket"]
     },
-    frequentlyBoughtTogether: [
-      { id: "acc-1", name: "High-Speed Braided Type-C Cable (1.5m)", price: 299, originalPrice: 699, image: "https://images.unsplash.com/photo-1544816155-12df9643f363?w=400&auto=format&fit=crop&q=80", defaultSelected: true },
-      { id: "acc-2", name: "30W Dual Port Fast Wall Adapter", price: 599, originalPrice: 1299, image: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=400&auto=format&fit=crop&q=80", defaultSelected: true },
-      { id: "acc-3", name: "1 Year Extended Damage Protection", price: 149, originalPrice: 399, image: "https://images.unsplash.com/photo-1563770660941-20978e870e26?w=400&auto=format&fit=crop&q=80", defaultSelected: false }
-    ],
-    reviews: [
-      {
-        reviewId: "rev-101",
-        userName: "Aarav Sharma",
-        rating: 5,
-        title: "Must buy powerbank for travelers!",
-        comment: "Charged my iPhone 14 Pro almost 4.5 times on a single charge. The fast charging speed is incredible. Built sturdy.",
-        verifiedPurchase: true,
-        date: "14 Jul 2025",
-        helpfulCount: 42,
-        productVariant: "Black / 20000mAh",
-        images: ["https://images.unsplash.com/photo-1609592424109-dd9892f1b177?w=400&auto=format&fit=crop&q=80"]
-      },
-      {
-        reviewId: "rev-102",
-        userName: "Neha Gupta",
-        rating: 4,
-        title: "Good backup but a bit heavy",
-        comment: "Capacity is genuinely 20,000mAh. Takes around 5 hours to full charge with 20W charger. Bit bulky to carry in small bags.",
-        verifiedPurchase: true,
-        date: "02 Jun 2025",
-        helpfulCount: 18,
-        productVariant: "Black / 20000mAh"
-      },
-      {
-        reviewId: "rev-103",
-        userName: "Rohan Varma",
-        rating: 5,
-        title: "Value for money product",
-        comment: "Using it for 3 months now. No heating issues while charging dual devices simultaneously. Flipkart Assured delivery was fast.",
-        verifiedPurchase: true,
-        date: "28 May 2025",
-        helpfulCount: 11
-      }
-    ]
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-1", "Flipkart Power Bank 20000mAh", "Flipkart SmartBuy", "Electronics", 4.3)
   },
 
   {
@@ -99,71 +371,25 @@ export const INITIAL_PRODUCTS: Product[] = [
     isFlipkartAssured: true,
     image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80",
     images: [
-      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1484704849700-f032a568e944?w=800&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800&auto=format&fit=crop&q=80"
+      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80"
     ],
-    description: "Wireless Bluetooth headphones featuring 40mm dynamic drivers, punchy bass, plush ear cushions, and up to 15 hours of continuous playback time with ASAP Fast Charge.",
+    description: "Wireless Bluetooth headphones featuring 40mm dynamic drivers, punchy bass, plush ear cushions, and up to 15 hours playback.",
     offers: [
-      { type: "Bank Offer", title: "10% Instant Discount", detail: "10% off on HDFC Bank Credit Card EMI Transactions up to ₹1,250" },
-      { type: "Partner Offer", title: "Free Wynk Music Subscription", detail: "Get 6 months free Wynk Premium subscription on purchase" },
-      { type: "Financing", title: "No Cost EMI", detail: "Zero processing fee EMI starting from ₹332/month" }
+      { type: "Bank Offer", title: "10% Instant Discount", detail: "10% off on HDFC Bank Credit Card EMI Transactions" }
     ],
     specifications: {
       "Model Name": "Rockerz 450",
       "Headphone Type": "On-Ear Wireless",
       "Driver Size": "40 mm Dynamic",
-      "Battery Life": "Up to 15 Hours",
-      "Fast Charge": "10 mins charge = 90 mins playtime",
-      "Bluetooth Version": "v5.0",
       "Warranty": "1 Year boAt Brand Warranty"
     },
     aiSummary: {
-      overall: "Customers highly appreciate the powerful bass response, sleek matte finish, long battery backup, and cushion comfort. Minor negative reviews mention tight headband pressure during long gaming sessions.",
+      overall: "Customers highly appreciate the powerful bass response, sleek matte finish, long battery backup, and cushion comfort.",
       positive: ["Punchy Super Extra Bass", "Solid 15-hour playback", "Fast ASAP charging"],
-      negative: ["Headband fits tight initially", "Outer cardboard package was dented"]
+      negative: ["Headband fits tight initially"]
     },
-    frequentlyBoughtTogether: [
-      { id: "acc-4", name: "Hard EVA Travel Case for Headphones", price: 349, originalPrice: 899, image: "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400&auto=format&fit=crop&q=80", defaultSelected: true },
-      { id: "acc-5", name: "3.5mm Gold-Plated Braided AUX Cable", price: 199, originalPrice: 499, image: "https://images.unsplash.com/photo-1544816155-12df9643f363?w=400&auto=format&fit=crop&q=80", defaultSelected: true },
-      { id: "acc-6", name: "1 Year Complete Audio Protection Plan", price: 99, originalPrice: 299, image: "https://images.unsplash.com/photo-1563770660941-20978e870e26?w=400&auto=format&fit=crop&q=80", defaultSelected: false }
-    ],
-    reviews: [
-      {
-        reviewId: "rev-201",
-        userName: "Vikram Malhotra",
-        rating: 5,
-        title: "Incredible Bass & Battery for the price!",
-        comment: "Sound quality is punchy and crisp. Connected seamlessly with my smartphone and laptop. Battery easily lasts 2 full work days.",
-        verifiedPurchase: true,
-        date: "20 Jul 2025",
-        helpfulCount: 56,
-        productVariant: "Lush Black",
-        images: ["https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&auto=format&fit=crop&q=80"]
-      },
-      {
-        reviewId: "rev-202",
-        userName: "Priya Nair",
-        rating: 4,
-        title: "Awesome sound, comfortable pads",
-        comment: "Clear vocals and deep bass. Ear padding is soft. Controls on the ear cup work smoothly for calls.",
-        verifiedPurchase: true,
-        date: "10 Jun 2025",
-        helpfulCount: 29,
-        productVariant: "Hazel Beige"
-      },
-      {
-        reviewId: "rev-203",
-        userName: "Karthik R",
-        rating: 3,
-        title: "Decent audio but headband feels tight",
-        comment: "Audio quality is great, but after 2 hours of wearing, headband feels a bit tight on ears. Good for short sessions.",
-        verifiedPurchase: true,
-        date: "15 May 2025",
-        helpfulCount: 14,
-        productVariant: "Lush Black"
-      }
-    ]
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-2", "boAt Rockerz 450", "boAt", "Electronics", 4.1)
   },
 
   {
@@ -182,40 +408,24 @@ export const INITIAL_PRODUCTS: Product[] = [
     isFlipkartAssured: true,
     image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800&auto=format&fit=crop&q=80",
     images: [
-      "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80"
+      "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800&auto=format&fit=crop&q=80"
     ],
     description: "Over-ear wireless headphones with 50mm dynamic drivers, physical noise isolation, up to 20 hours battery life, and ergonomic earcups.",
     offers: [
-      { type: "Bank Offer", title: "10% Instant Discount", detail: "10% off on ICICI Bank Cards" },
-      { type: "Special Offer", title: "Extra ₹300 Off", detail: "Special price discount included in final price" }
+      { type: "Bank Offer", title: "10% Instant Discount", detail: "10% off on ICICI Bank Cards" }
     ],
     specifications: {
       "Model Name": "Rockerz 550",
-      "Headphone Type": "Over-Ear Wireless",
       "Driver Size": "50 mm Dynamic",
-      "Battery Life": "20 Hours",
       "Warranty": "1 Year Brand Warranty"
     },
     aiSummary: {
-      overall: "Users love the 50mm drivers and soft over-ear cushions for immersive gaming and music. High satisfaction overall.",
-      positive: ["50mm bass drivers", "20hr continuous playtime", "Over-ear passive noise isolation"],
+      overall: "Users love the 50mm drivers and soft over-ear cushions for immersive gaming and music.",
+      positive: ["50mm bass drivers", "20hr continuous playtime"],
       negative: ["Takes 2.5 hours to full charge"]
     },
     frequentlyBoughtTogether: [],
-    reviews: [
-      {
-        reviewId: "rev-550-1",
-        userName: "Devang Patel",
-        rating: 5,
-        title: "Best Over-Ear headphone under 2500!",
-        comment: "The 50mm drivers produce incredible sub-bass. Ears are fully enclosed so no fatigue.",
-        verifiedPurchase: true,
-        date: "01 Aug 2025",
-        helpfulCount: 38,
-        productVariant: "Army Green"
-      }
-    ]
+    reviews: generate45Reviews("prod-2b", "boAt Rockerz 550", "boAt", "Electronics", 4.3)
   },
 
   {
@@ -237,33 +447,19 @@ export const INITIAL_PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=800&auto=format&fit=crop&q=80"
     ],
     description: "Active Noise Cancelling wireless headphones with Pure Bass Sound, 35 hours battery life with ANC on, multipoint Bluetooth connection.",
-    offers: [
-      { type: "Bank Offer", title: "Flat ₹500 Off", detail: "Flat ₹500 discount on SBI Credit Cards" }
-    ],
+    offers: [],
     specifications: {
       "Model Name": "Tune 760NC",
-      "Headphone Type": "Over-Ear ANC",
-      "Battery Life": "35 Hours (ANC On)",
+      "Battery Life": "35 Hours",
       "Warranty": "1 Year JBL Warranty"
     },
     aiSummary: {
       overall: "Customers praise JBL Pure Bass sound, active noise cancellation performance, and lightweight foldable design.",
-      positive: ["Active Noise Cancellation", "35 Hours battery backup", "Multipoint connection"],
-      negative: ["Mic quality is average in noisy outdoors"]
+      positive: ["Active Noise Cancellation", "35 Hours battery backup"],
+      negative: ["Mic quality is average outdoors"]
     },
     frequentlyBoughtTogether: [],
-    reviews: [
-      {
-        reviewId: "rev-jbl-1",
-        userName: "Siddharth Mehta",
-        rating: 5,
-        title: "ANC works like magic on flights!",
-        comment: "Blocks airplane cabin drone noise completely. Crisp highs and deep signature JBL bass.",
-        verifiedPurchase: true,
-        date: "25 Jul 2025",
-        helpfulCount: 45
-      }
-    ]
+    reviews: generate45Reviews("prod-2c", "JBL Tune 760NC", "JBL", "Electronics", 4.4)
   },
 
   {
@@ -284,34 +480,20 @@ export const INITIAL_PRODUCTS: Product[] = [
     images: [
       "https://images.unsplash.com/photo-1484704849700-f032a568e944?w=800&auto=format&fit=crop&q=80"
     ],
-    description: "Wireless headphones with up to 50 hours battery life, DSEE sound enhancement, crystal clear hands-free call quality, multipoint pairing.",
-    offers: [
-      { type: "Bank Offer", title: "₹750 Cashback", detail: "Cashback on Sony Center purchases" }
-    ],
+    description: "Wireless headphones with up to 50 hours battery life, DSEE sound enhancement, crystal clear hands-free call quality.",
+    offers: [],
     specifications: {
       "Model Name": "WH-CH520",
       "Battery Life": "50 Hours",
-      "DSEE Engine": "Yes",
-      "Warranty": "1 Year Sony India Warranty"
+      "Warranty": "1 Year Sony Warranty"
     },
     aiSummary: {
       overall: "Unmatched 50-hour battery life and supreme voice call clarity make it the top choice for remote work and travel.",
-      positive: ["50-hour battery monster", "DSEE audio upscale", "Multipoint dual device connection"],
-      negative: ["Non-collapsible headband structure"]
+      positive: ["50-hour battery monster", "DSEE audio upscale"],
+      negative: ["Non-collapsible headband"]
     },
     frequentlyBoughtTogether: [],
-    reviews: [
-      {
-        reviewId: "rev-sony-1",
-        userName: "Ananya Roy",
-        rating: 5,
-        title: "Battery lasts an entire week!",
-        comment: "I charge it once a week. Audio quality for Zoom calls and Spotify is stellar.",
-        verifiedPurchase: true,
-        date: "18 Jun 2025",
-        helpfulCount: 62
-      }
-    ]
+    reviews: generate45Reviews("prod-2d", "Sony WH-CH520", "Sony", "Electronics", 4.5)
   },
 
   {
@@ -330,45 +512,56 @@ export const INITIAL_PRODUCTS: Product[] = [
     isFlipkartAssured: true,
     image: "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=800&auto=format&fit=crop&q=80",
     images: [
-      "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=800&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1577979749830-f1d742b96791?w=800&auto=format&fit=crop&q=80"
+      "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=800&auto=format&fit=crop&q=80"
     ],
-    description: "HD Ready Android smart TV featuring 20W Dolby Audio stereo speakers, PatchWall with 30+ OTT content partners, Chromecast built-in, and Google Assistant voice remote.",
-    offers: [
-      { type: "Bank Offer", title: "₹1,500 Off", detail: "Flat ₹1,500 discount on Axis & ICICI Credit Cards" },
-      { type: "Partner Offer", title: "Free OTT Pack", detail: "3 Months SonyLIV & Zee5 Subscription included" }
-    ],
+    description: "HD Ready Android smart TV featuring 20W Dolby Audio stereo speakers, PatchWall with 30+ OTT content partners.",
+    offers: [],
     specifications: {
-      "Display Size": "32 Inches (80 cm)",
-      "Resolution": "HD Ready (1366 x 768)",
-      "Sound Output": "20 W Dolby Audio",
-      "Operating System": "Android TV 11 with PatchWall",
-      "RAM / ROM": "1 GB RAM / 8 GB Storage",
-      "Ports": "3 x HDMI, 2 x USB",
-      "Warranty": "1 Year Complete + 1 Year Additional Panel Warranty"
+      "Display Size": "32 Inches",
+      "Sound": "20 W Dolby Audio",
+      "Warranty": "1 Year Warranty"
     },
     aiSummary: {
-      overall: "Customers love the vibrant LED panel, easy Android UI, and crisp 20W Dolby speakers. Delivery installation team is prompt.",
-      positive: ["Vibrant HD display colors", "Dolby Audio sound clarity", "Smooth PatchWall interface"],
+      overall: "Customers love the vibrant LED panel, easy Android UI, and crisp 20W Dolby speakers.",
+      positive: ["Vibrant HD display colors", "Dolby Audio sound clarity"],
       negative: ["Remote lacks dedicated mute button"]
     },
-    frequentlyBoughtTogether: [
-      { id: "acc-7", name: "Heavy Duty Full Motion Wall Mount Bracket", price: 499, originalPrice: 1299, image: "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=400&auto=format&fit=crop&q=80", defaultSelected: true },
-      { id: "acc-8", name: "Gold-Plated 4K HDMI Cable (2m)", price: 299, originalPrice: 699, image: "https://images.unsplash.com/photo-1544816155-12df9643f363?w=400&auto=format&fit=crop&q=80", defaultSelected: true },
-      { id: "acc-9", name: "3 Year TV Extended Warranty Protection", price: 999, originalPrice: 2499, image: "https://images.unsplash.com/photo-1563770660941-20978e870e26?w=400&auto=format&fit=crop&q=80", defaultSelected: false }
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-3", "Mi Smart TV 4A 32", "Mi", "Home Appliances", 4.4)
+  },
+
+  {
+    id: "prod-3b",
+    name: "Samsung 43-inch Crystal 4K UHD Smart TV",
+    brand: "Samsung",
+    category: "Home Appliances",
+    rating: 4.6,
+    ratingCount: 7800,
+    reviewCount: 1540,
+    seller: "OmniTechRetail",
+    sellerRating: "4.8 / 5",
+    price: 44900,
+    originalPrice: 44900,
+    discount: 0.35,
+    isFlipkartAssured: true,
+    image: "https://images.unsplash.com/photo-1577979749830-f1d742b96791?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1577979749830-f1d742b96791?w=800&auto=format&fit=crop&q=80"
     ],
-    reviews: [
-      {
-        reviewId: "rev-301",
-        userName: "Rajesh K",
-        rating: 5,
-        title: "Best budget smart TV for bedroom",
-        comment: "Picture clarity is amazing for HD content. Sound is loud and clear without soundbar. Wall mounting done within 24 hours of delivery.",
-        verifiedPurchase: true,
-        date: "05 Aug 2025",
-        helpfulCount: 78
-      }
-    ]
+    description: "Crystal Processor 4K, PurColor realism, Q-Symphony sound alignment, Tizen OS smart hub, and Motion Xcelerator.",
+    offers: [],
+    specifications: {
+      "Display Size": "43 Inches (108 cm)",
+      "Resolution": "4K Ultra HD (3840 x 2160)",
+      "Warranty": "2 Years Comprehensive Samsung Warranty"
+    },
+    aiSummary: {
+      overall: "Exceptional 4K Crystal Processor picture depth, sleek bezel-less design, and Q-Symphony sound integration.",
+      positive: ["Vivid 4K HDR PurColor", "Bezel-less AirSlim design"],
+      negative: ["Tizen store app selection is selective"]
+    },
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-3b", "Samsung 43-inch Crystal 4K", "Samsung", "Home Appliances", 4.6)
   },
 
   {
@@ -387,41 +580,87 @@ export const INITIAL_PRODUCTS: Product[] = [
     isFlipkartAssured: false,
     image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800&auto=format&fit=crop&q=80",
     images: [
-      "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=800&auto=format&fit=crop&q=80"
+      "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800&auto=format&fit=crop&q=80"
     ],
-    description: "100% premium breathable cotton slim fit casual check shirt featuring curved hemline, buttoned cuffs, and double chest patch pockets.",
-    offers: [
-      { type: "Bank Offer", title: "Extra 10% Off", detail: "Buy 2 apparel items and get extra 10% discount" }
-    ],
+    description: "100% premium breathable cotton slim fit casual check shirt featuring curved hemline and double chest patch pockets.",
+    offers: [],
     specifications: {
       "Fabric": "100% Cotton",
-      "Fit": "Slim Fit",
-      "Pattern": "Tartan Checkered",
-      "Sleeve": "Long Sleeves",
-      "Collar": "Spread Collar",
-      "Wash Care": "Machine Wash Warm"
+      "Fit": "Slim Fit"
     },
     aiSummary: {
-      overall: "Customers love the soft 100% cotton fabric feel and stylish checkered pattern. Some recommend ordering one size larger for relaxed fit.",
-      positive: ["Soft breathable cotton", "Trendy colors and fit", "Durable stitching"],
-      negative: ["Shrinks slightly after hot water wash"]
+      overall: "Customers love the soft 100% cotton fabric feel and stylish checkered pattern.",
+      positive: ["Soft breathable cotton", "Trendy colors and fit"],
+      negative: ["Shrinks slightly after hot wash"]
     },
-    frequentlyBoughtTogether: [
-      { id: "acc-10", name: "Slim Fit Stretchable Denim Jeans", price: 1199, originalPrice: 2499, image: "https://images.unsplash.com/photo-1542272604-780c96856592?w=400&auto=format&fit=crop&q=80", defaultSelected: true }
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-4", "Roadster Check Shirt", "Roadster", "Fashion", 3.9)
+  },
+
+  {
+    id: "prod-4b",
+    name: "Levi's 511 Slim Fit Stretchable Jeans",
+    brand: "Levi's",
+    category: "Fashion",
+    rating: 4.5,
+    ratingCount: 6100,
+    reviewCount: 1200,
+    seller: "StyleNet",
+    sellerRating: "4.7 / 5",
+    price: 3999,
+    originalPrice: 3999,
+    discount: 0.40,
+    isFlipkartAssured: true,
+    image: "https://images.unsplash.com/photo-1542272604-780c96856592?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1542272604-780c96856592?w=800&auto=format&fit=crop&q=80"
     ],
-    reviews: [
-      {
-        reviewId: "rev-401",
-        userName: "Manish Tiwari",
-        rating: 4,
-        title: "Stylish shirt with great fabric",
-        comment: "Color matches exact photos. Fabric is 100% cotton so very comfortable in summer heat.",
-        verifiedPurchase: true,
-        date: "12 May 2025",
-        helpfulCount: 22
-      }
-    ]
+    description: "Classic Levi's 511 slim fit denim featuring elastane stretch comfort, iconic red tab back pocket, and durable wash.",
+    offers: [],
+    specifications: {
+      "Fabric": "98% Cotton, 2% Elastane",
+      "Fit": "511 Slim Fit"
+    },
+    aiSummary: {
+      overall: "Timeless Levi's quality, flexible stretch denim comfort, and perfect slim silhouette.",
+      positive: ["Iconic Levi's build", "Comfortable stretch denim"],
+      negative: ["Length may require hem tailoring"]
+    },
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-4b", "Levi's 511 Slim Fit Jeans", "Levi's", "Fashion", 4.5)
+  },
+
+  {
+    id: "prod-4c",
+    name: "Nike Air Max 270 Running Shoes",
+    brand: "Nike",
+    category: "Fashion",
+    rating: 4.7,
+    ratingCount: 7900,
+    reviewCount: 1650,
+    seller: "NikeIndia",
+    sellerRating: "4.9 / 5",
+    price: 13995,
+    originalPrice: 13995,
+    discount: 0.20,
+    isFlipkartAssured: true,
+    image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&auto=format&fit=crop&q=80"
+    ],
+    description: "Boasting Nike's biggest heel Max Air unit yet, delivering a super-soft ride that feels as impossible as it looks.",
+    offers: [],
+    specifications: {
+      "Sole": "270 Max Air Heel Unit",
+      "Upper": "Engineered Knit Fabric"
+    },
+    aiSummary: {
+      overall: "Sensational heel cushioning, stylish futuristic aesthetic, and superior bounce for athletic training.",
+      positive: ["Massive Air heel cushioning", "Eye-catching athletic design"],
+      negative: ["Fits snug, recommend half size up"]
+    },
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-4c", "Nike Air Max 270", "Nike", "Fashion", 4.7)
   },
 
   {
@@ -440,40 +679,54 @@ export const INITIAL_PRODUCTS: Product[] = [
     isFlipkartAssured: true,
     image: "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?w=800&auto=format&fit=crop&q=80",
     images: [
-      "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?w=800&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&auto=format&fit=crop&q=80"
+      "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?w=800&auto=format&fit=crop&q=80"
     ],
-    description: "Multi-use hair serum enriched with 6 rare flower oils. Tames frizz, seals split ends, provides heat protection up to 230°C, and gives glossy shine.",
-    offers: [
-      { type: "Special Offer", title: "Free Beauty Sample", detail: "Get a free 15ml face wash sample on beauty orders above ₹499" }
-    ],
+    description: "Multi-use hair serum enriched with 6 rare flower oils. Tames frizz, seals split ends, and provides heat protection up to 230°C.",
+    offers: [],
     specifications: {
       "Volume": "100 ml",
-      "Hair Type": "All Hair Types",
-      "Key Ingredients": "Lotus, Chamomile, Rose, Tiare, Matricaria, Flax",
-      "Heat Protection": "Up to 230°C",
-      "Form": "Non-greasy Serum Oil"
+      "Hair Type": "All Hair Types"
     },
     aiSummary: {
-      overall: "Top-rated hair serum for frizz control, non-sticky texture, and floral fragrance. Highly recommended by verified buyers.",
-      positive: ["Lightweight non-sticky texture", "Delightful fragrance", "Instant frizz control"],
-      negative: ["Glass bottle requires careful handling"]
+      overall: "Top-rated hair serum for frizz control, non-sticky texture, and floral fragrance.",
+      positive: ["Lightweight non-sticky texture", "Delightful fragrance"],
+      negative: ["Glass bottle requires care"]
     },
-    frequentlyBoughtTogether: [
-      { id: "acc-11", name: "L'Oreal Paris Hyaluron Moisture Shampoo", price: 349, originalPrice: 499, image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&auto=format&fit=crop&q=80", defaultSelected: true }
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-5", "L'Oreal Extraordinary Hair Oil", "L'Oreal Paris", "Beauty & Personal Care", 4.5)
+  },
+
+  {
+    id: "prod-5b",
+    name: "Minimalist 10% Vitamin C Face Serum",
+    brand: "Minimalist",
+    category: "Beauty & Personal Care",
+    rating: 4.4,
+    ratingCount: 5400,
+    reviewCount: 1100,
+    seller: "BeautyPlus",
+    sellerRating: "4.7 / 5",
+    price: 699,
+    originalPrice: 699,
+    discount: 0.10,
+    isFlipkartAssured: true,
+    image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=800&auto=format&fit=crop&q=80"
     ],
-    reviews: [
-      {
-        reviewId: "rev-501",
-        userName: "Sneha Reddy",
-        rating: 5,
-        title: "Magic serum for dry frizzy hair!",
-        comment: "Makes hair silky smooth without making it look oily or flat. Scent is heavenly.",
-        verifiedPurchase: true,
-        date: "22 Jul 2025",
-        helpfulCount: 64
-      }
-    ]
+    description: "Glow serum formulated with 10% Ethyl Ascorbic Acid, Acetyl Glucosamine, and Centella Water for skin brightening and spot reduction.",
+    offers: [],
+    specifications: {
+      "Volume": "30 ml",
+      "Active Ingredient": "10% Ethyl Ascorbic Acid"
+    },
+    aiSummary: {
+      overall: "Dermatologist favourite serum for reducing dark spots, evening skin tone, and adding radiant glow.",
+      positive: ["Reduces dark spots effectively", "Stable non-oxidizing formula"],
+      negative: ["Tingling sensation on sensitive skin"]
+    },
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-5b", "Minimalist Vitamin C Serum", "Minimalist", "Beauty & Personal Care", 4.4)
   },
 
   {
@@ -495,37 +748,18 @@ export const INITIAL_PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1621972750749-0fbb1abb7736?w=800&auto=format&fit=crop&q=80"
     ],
     description: "Healthy air frying technology using Rapid Air hot air circulation to cook crispy fries, snacks, and grills with up to 90% less oil.",
-    offers: [
-      { type: "Bank Offer", title: "₹1,000 Instant Off", detail: "Instant discount on HDFC & ICICI Credit Cards" }
-    ],
+    offers: [],
     specifications: {
       "Capacity": "4.1 Liters",
-      "Power Wattage": "1400 W",
-      "Technology": "Rapid Air Circulation",
-      "Auto Shut-off": "Yes with Timer signal",
-      "Dishwasher Safe": "Removable basket parts",
-      "Warranty": "2 Years Worldwide Philips Warranty"
+      "Power": "1400 W"
     },
     aiSummary: {
       overall: "Customers love the 90% oil-free frying result, crispy texture for samosas & fries, and easy basket cleaning.",
-      positive: ["Requires minimal oil", "Crispy snack texture", "Easy dishwasher safe basket"],
-      negative: ["Power cable is short (1 meter)"]
+      positive: ["Requires minimal oil", "Crispy snack texture"],
+      negative: ["Power cable is short (1m)"]
     },
-    frequentlyBoughtTogether: [
-      { id: "acc-12", name: "Perforated Air Fryer Parchment Paper Liners (100 pcs)", price: 249, originalPrice: 599, image: "https://images.unsplash.com/photo-1621972750749-0fbb1abb7736?w=400&auto=format&fit=crop&q=80", defaultSelected: true }
-    ],
-    reviews: [
-      {
-        reviewId: "rev-601",
-        userName: "Dr. Vikram Seth",
-        rating: 5,
-        title: "Best health investment for family",
-        comment: "Fries chicken and snacks crispy without oil soaked guilt. Easy to clean. Highly recommended!",
-        verifiedPurchase: true,
-        date: "19 May 2025",
-        helpfulCount: 88
-      }
-    ]
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-6", "Philips Air Fryer", "Philips", "Home Appliances", 4.6)
   },
 
   {
@@ -546,34 +780,19 @@ export const INITIAL_PRODUCTS: Product[] = [
     images: [
       "https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=800&auto=format&fit=crop&q=80"
     ],
-    description: "Fast-paced, addictive card game where your luck can change in the play of a single card. Collect 3 complete property sets to win.",
-    offers: [
-      { type: "Special Offer", title: "Buy 3 Get 10% Off", detail: "Mix and match toy card games for bundle savings" }
-    ],
+    description: "Fast-paced, addictive card game where your luck can change in the play of a single card.",
+    offers: [],
     specifications: {
       "Age Group": "8+ Years",
-      "Players": "2 to 5 Players",
-      "Play Time": "15 to 30 Minutes",
-      "In the Box": "110 Deal Cards & Rulebook"
+      "Players": "2 to 5 Players"
     },
     aiSummary: {
       overall: "Fun, quick, strategic game praised by adults and kids alike.",
-      positive: ["Fast 15-min game sessions", "High replay value", "Easy to learn rules"],
+      positive: ["Fast 15-min game sessions", "High replay value"],
       negative: ["Card paper quality is thin"]
     },
     frequentlyBoughtTogether: [],
-    reviews: [
-      {
-        reviewId: "rev-701",
-        userName: "Komal Bajaj",
-        rating: 5,
-        title: "Super addicting family game!",
-        comment: "Much faster and fun than traditional Monopoly board game. Perfect for game nights.",
-        verifiedPurchase: true,
-        date: "30 Jun 2025",
-        helpfulCount: 33
-      }
-    ]
+    reviews: generate45Reviews("prod-7", "Monopoly Deal", "Hasbro", "Books & Toys", 4.2)
   },
 
   {
@@ -594,37 +813,53 @@ export const INITIAL_PRODUCTS: Product[] = [
     images: [
       "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?w=800&auto=format&fit=crop&q=80"
     ],
-    description: "Outemu Blue switch mechanical gaming keyboard with customisable RGB backlighting profiles, aluminum top chassis, and 100% anti-ghosting.",
-    offers: [
-      { type: "Bank Offer", title: "10% Off Gaming Gear", detail: "10% off on Canara Bank Debit Cards" }
-    ],
+    description: "Outemu Blue switch mechanical gaming keyboard with customisable RGB backlighting profiles and aluminum chassis.",
+    offers: [],
     specifications: {
-      "Switch Type": "Outemu Clicky Blue Mechanical",
-      "Backlight": "RGB Multi-Mode FX",
-      "Key Rollover": "Full Key Anti-Ghosting",
-      "Cable": "Braided USB 1.8m",
-      "Warranty": "1 Year Cosmic Byte Warranty"
+      "Switch": "Outemu Blue Mechanical",
+      "Backlight": "RGB Multi-Mode"
     },
     aiSummary: {
       overall: "Gamers love the clicky blue tactile feedback, sturdy metal top plate, and bright RGB modes.",
-      positive: ["Satisfying mechanical tactile click", "Solid aluminum top frame", "Vibrant RGB lighting"],
-      negative: ["Click sound is loud in quiet office settings"]
+      positive: ["Satisfying mechanical click", "Solid aluminum top frame"],
+      negative: ["Click sound is loud in quiet office"]
     },
-    frequentlyBoughtTogether: [
-      { id: "acc-13", name: "Extended Anti-Slip RGB Gaming Mousepad (90x40cm)", price: 499, originalPrice: 1199, image: "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?w=400&auto=format&fit=crop&q=80", defaultSelected: true }
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-8", "Cosmic Byte Keyboard", "Cosmic Byte", "Electronics", 4.0)
+  },
+
+  {
+    id: "prod-8b",
+    name: "Logitech MX Master 3S Performance Mouse",
+    brand: "Logitech",
+    category: "Electronics",
+    rating: 4.8,
+    ratingCount: 7600,
+    reviewCount: 1420,
+    seller: "GamerNet",
+    sellerRating: "4.9 / 5",
+    price: 10995,
+    originalPrice: 10995,
+    discount: 0.18,
+    isFlipkartAssured: true,
+    image: "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=800&auto=format&fit=crop&q=80"
     ],
-    reviews: [
-      {
-        reviewId: "rev-801",
-        userName: "Varun Nair",
-        rating: 4,
-        title: "Great mechanical keyboard under 2.5k",
-        comment: "Click feedback is very crisp. Great for typing and Valorant gaming.",
-        verifiedPurchase: true,
-        date: "04 Jul 2025",
-        helpfulCount: 27
-      }
-    ]
+    description: "An iconic master re-engineered. Quiet Clicks, 8K DPI Darkfield glass tracking, MagSpeed electromagnetic scrolling wheel.",
+    offers: [],
+    specifications: {
+      "Sensor": "8000 DPI Darkfield Glass Tracking",
+      "Click Noise": "90% Quieter Clicks",
+      "Battery": "70 Days on Full Charge"
+    },
+    aiSummary: {
+      overall: "The ultimate productivity mouse for programmers and designers. Hyper-fast MagSpeed wheel and silent clicks.",
+      positive: ["MagSpeed 1000 lines/sec scroll", "90% quiet click technology", "Works on glass surfaces"],
+      negative: ["Designed specifically for right-handed users"]
+    },
+    frequentlyBoughtTogether: [],
+    reviews: generate45Reviews("prod-8b", "Logitech MX Master 3S", "Logitech", "Electronics", 4.8)
   },
 
   {
@@ -645,34 +880,19 @@ export const INITIAL_PRODUCTS: Product[] = [
     images: [
       "https://images.unsplash.com/photo-1627124709743-4ac5036f3c02?w=800&auto=format&fit=crop&q=80"
     ],
-    description: "Genuine high-grade grain leather bi-fold wallet featuring 6 card compartments, RFID blocking layer, and separate coin pocket.",
-    offers: [
-      { type: "Partner Offer", title: "Flat 15% Off", detail: "Get 15% off when bought with Puma footwear" }
-    ],
+    description: "Genuine high-grade grain leather bi-fold wallet featuring 6 card compartments, RFID blocking layer, and coin pocket.",
+    offers: [],
     specifications: {
       "Material": "100% Genuine Leather",
-      "Card Slots": "6 Compartments",
-      "RFID Protection": "Yes",
-      "Color": "Tan Brown"
+      "RFID": "Yes"
     },
     aiSummary: {
       overall: "Customers compliment the rich leather feel, slim profile, and RFID security feature.",
-      positive: ["Genuine leather smell and texture", "RFID protection", "Slim pocket profile"],
-      negative: ["Coin pocket snap button is stiff initially"]
+      positive: ["Genuine leather finish", "RFID protection"],
+      negative: ["Coin pocket button stiff initially"]
     },
     frequentlyBoughtTogether: [],
-    reviews: [
-      {
-        reviewId: "rev-901",
-        userName: "Akash Deep",
-        rating: 5,
-        title: "Classy wallet with premium packaging",
-        comment: "Real leather finish. Has plenty of card slots and fits smoothly in back pocket.",
-        verifiedPurchase: true,
-        date: "16 Jun 2025",
-        helpfulCount: 19
-      }
-    ]
+    reviews: generate45Reviews("prod-9", "Puma Leather Wallet", "Puma", "Fashion", 4.2)
   },
 
   {
@@ -693,39 +913,23 @@ export const INITIAL_PRODUCTS: Product[] = [
     images: [
       "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&auto=format&fit=crop&q=80"
     ],
-    description: "Clinically proven oil-free water gel moisturiser containing hyaluronic acid and olive extract for 72-hour deep skin hydration.",
-    offers: [
-      { type: "Bank Offer", title: "5% Cashback", detail: "5% cashback on Flipkart Axis Bank Card" }
-    ],
+    description: "Clinically proven oil-free water gel moisturiser containing hyaluronic acid for 72-hour deep skin hydration.",
+    offers: [],
     specifications: {
       "Volume": "50 grams",
-      "Skin Type": "All Skin Types (Oil-Free)",
-      "Key Component": "Purified Hyaluronic Acid",
-      "Dermatologist Tested": "Yes (Non-Comedogenic)"
+      "Skin Type": "All Skin Types"
     },
     aiSummary: {
       overall: "Dermatologist-recommended water gel loved for lightweight hydration, zero oiliness, and glass skin finish.",
-      positive: ["Absorbs instantly without shine", "Deep hyaluronic hydration", "Non-comedogenic (no breakouts)"],
+      positive: ["Absorbs instantly without shine", "Deep hyaluronic hydration"],
       negative: ["Price is premium for 50g jar"]
     },
     frequentlyBoughtTogether: [],
-    reviews: [
-      {
-        reviewId: "rev-1001",
-        userName: "Divya Kapoor",
-        rating: 5,
-        title: "Holy grail moisturizer for oily skin!",
-        comment: "Feels like cooling water on skin. Keeps skin plump and soft whole day without greasy shine.",
-        verifiedPurchase: true,
-        date: "09 Jul 2025",
-        helpfulCount: 52
-      }
-    ]
+    reviews: generate45Reviews("prod-10", "Neutrogena Hydro Boost", "Neutrogena", "Beauty & Personal Care", 4.4)
   }
 ];
 
-// Algorithm for Section 5: Similar Product Recommendation Logic
-// 40% Same Category, 25% Same Brand, 20% Similar Price, 10% Similar Rating, 5% Popularity
+// Helper algorithm: Similar Product Recommendation Scoring (40/25/20/10/5 rule)
 export function getRecommendedProducts(currentProduct: Product, allProducts: Product[], limit: number = 6): Product[] {
   const scored = allProducts
     .filter(p => p.id !== currentProduct.id)
@@ -742,25 +946,23 @@ export function getRecommendedProducts(currentProduct: Product, allProducts: Pro
         score += 0.25;
       }
 
-      // 20% Similar Price (|priceDiff| / refPrice)
+      // 20% Similar Price
       const currentFinalPrice = currentProduct.price * (1 - currentProduct.discount);
       const candidateFinalPrice = candidate.price * (1 - candidate.discount);
       const priceDiff = Math.abs(candidateFinalPrice - currentFinalPrice) / Math.max(1, currentFinalPrice);
       score += 0.20 * Math.max(0, 1 - priceDiff);
 
-      // 10% Similar Rating (|ratingDiff| / 5)
+      // 10% Similar Rating
       const ratingDiff = Math.abs(candidate.rating - currentProduct.rating) / 5.0;
       score += 0.10 * Math.max(0, 1 - ratingDiff);
 
-      // 5% Popularity (ratingCount / 5000)
+      // 5% Popularity
       const popScore = Math.min(1.0, (candidate.ratingCount || 500) / 5000.0);
       score += 0.05 * popScore;
 
       return { product: candidate, score };
     });
 
-  // Sort descending by similarity score
   scored.sort((a, b) => b.score - a.score);
-
   return scored.slice(0, limit).map(item => item.product);
 }

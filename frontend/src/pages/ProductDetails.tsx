@@ -33,6 +33,7 @@ const ProductDetails: React.FC = () => {
   const [withImagesOnly, setWithImagesOnly] = useState(false);
   const [sortBy, setSortBy] = useState<'helpful' | 'recent' | 'highest' | 'lowest'>('helpful');
   const [helpfulCounts, setHelpfulCounts] = useState<Record<string, number>>({});
+  const [visibleReviewsCount, setVisibleReviewsCount] = useState<number>(6);
 
   // Bundle Frequently Bought Together state
   const [selectedBundleItems, setSelectedBundleItems] = useState<Record<string, boolean>>({});
@@ -47,6 +48,7 @@ const ProductDetails: React.FC = () => {
     // Reset gallery image to main product image
     setSelectedImage(product.images?.[0] || product.image);
     setZoomImage(false);
+    setVisibleReviewsCount(6);
 
     // Initialize bundle selections
     const initialBundle: Record<string, boolean> = {};
@@ -578,7 +580,7 @@ const ProductDetails: React.FC = () => {
                         No reviews matching selected filters.
                       </div>
                     ) : (
-                      filteredReviews.map((rev) => {
+                      filteredReviews.slice(0, visibleReviewsCount).map((rev) => {
                         const currentHelpful = (helpfulCounts[rev.reviewId] !== undefined ? helpfulCounts[rev.reviewId] : rev.helpfulCount);
                         return (
                           <div key={rev.reviewId} className="p-4 bg-[#0d1220] rounded-xl border border-white/10 flex flex-col gap-2.5 text-xs">
@@ -625,6 +627,19 @@ const ProductDetails: React.FC = () => {
                           </div>
                         );
                       })
+                    )}
+
+                    {/* Load More Reviews Button */}
+                    {filteredReviews.length > visibleReviewsCount && (
+                      <div className="pt-2 text-center">
+                        <Button
+                          variant="secondary"
+                          onClick={() => setVisibleReviewsCount(prev => prev + 10)}
+                          className="w-full py-2.5 text-xs font-bold font-mono tracking-wider"
+                        >
+                          Load More Customer Reviews (+{filteredReviews.length - visibleReviewsCount} remaining)
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
