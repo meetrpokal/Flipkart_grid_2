@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trash2, Plus, Minus, Tag, Truck, ShoppingBag, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { Button, Card, Input } from '../components/DesignSystem';
 
@@ -85,57 +86,75 @@ const Cart: React.FC = () => {
 
   if (cart.length === 0) {
     return (
-      <div className="py-20 px-6 max-w-lg mx-auto text-center flex flex-col items-center gap-6">
-        <div className="w-16 h-16 rounded-full bg-slate-900 flex items-center justify-center border border-slate-800 text-slate-500">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="py-24 px-6 max-w-lg mx-auto text-center flex flex-col items-center gap-6"
+      >
+        <div className="w-16 h-16 rounded-full bg-[#0d1220] flex items-center justify-center border border-white/10 text-[#F8CB2E]">
           <ShoppingBag size={28} />
         </div>
-        <h3 className="text-xl font-bold text-white">Your Cart is Empty</h3>
-        <p className="text-sm text-slate-500">Add products from the store to test the real-time AI cart abandonment risk indicators.</p>
-        <Button onClick={() => navigate('/store')}>Browse Store Products</Button>
-      </div>
+        <h3 className="text-xl font-bold text-white font-ui">Your Cart is Empty</h3>
+        <p className="text-xs text-slate-400 font-mono leading-relaxed">
+          Add products from the store to test the real-time AI cart abandonment risk indicators.
+        </p>
+        <Button onClick={() => navigate('/store')} variant="primary" className="font-mono text-xs">
+          Browse Store Products
+        </Button>
+      </motion.div>
     );
   }
 
   return (
-    <div className="py-12 px-6 max-w-6xl mx-auto flex flex-col lg:flex-row gap-8 text-left">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="py-8 px-4 sm:px-6 max-w-[1400px] mx-auto flex flex-col lg:flex-row gap-8 text-left relative z-10"
+    >
       {/* 1. Left Panel: Cart items list */}
       <div className="flex-1 flex flex-col gap-4">
-        <h2 className="text-2xl font-bold text-white mb-2">Shopping Cart ({cart.length} items)</h2>
+        <h2 className="text-2xl font-bold text-white font-ui mb-1 flex items-center gap-2">
+          <span>Shopping Cart</span>
+          <span className="text-xs font-mono bg-[#F8CB2E]/10 text-[#F8CB2E] border border-[#F8CB2E]/30 px-2 py-0.5 rounded font-bold">
+            {cart.length} ITEMS
+          </span>
+        </h2>
         
         {cart.map(item => {
           const productPrice = item.product.price * (1 - item.product.discount);
           return (
             <Card key={item.product.id} className="flex gap-4 items-center">
               {/* Product Thumbnail */}
-              <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-950 flex-shrink-0">
+              <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-950 flex-shrink-0 border border-white/10">
                 <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
               </div>
 
               {/* Product Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <h4 className="text-sm font-bold text-white truncate">{item.product.name}</h4>
+                  <h4 className="text-sm font-bold text-white truncate font-ui">{item.product.name}</h4>
                   <button
                     onClick={() => handleRemove(item.product.id)}
-                    className="p-1 rounded-md text-slate-500 hover:text-rose-500 hover:bg-slate-800/60 active:scale-95 transition-all"
+                    className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-slate-800/60 active:scale-95 transition-all cursor-pointer"
                     title="Remove Item"
                   >
                     <Trash2 size={16} />
                   </button>
                 </div>
-                <div className="text-[10px] text-slate-500 mt-0.5">Seller: {item.product.seller}</div>
+                <div className="text-[10px] font-mono text-slate-400 mt-0.5">Seller: {item.product.seller}</div>
 
                 <div className="flex items-center justify-between mt-2.5">
                   {/* Price */}
-                  <span className="text-sm font-extrabold text-white">
+                  <span className="text-sm font-mono font-extrabold text-[#F8CB2E]">
                     ₹{(productPrice * item.quantity).toLocaleString()}
                   </span>
 
                   {/* Quantity adjustment */}
-                  <div className="flex items-center gap-2 border border-slate-800 rounded bg-slate-950 px-1">
+                  <div className="flex items-center gap-2 border border-white/10 rounded bg-[#0d1220] px-1 font-mono">
                     <button
                       onClick={() => handleQuantityDecrease(item.product.id, item.quantity)}
-                      className="p-1 text-slate-500 hover:text-white transition-colors"
+                      className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
                       disabled={item.quantity <= 1}
                     >
                       <Minus size={12} />
@@ -143,7 +162,7 @@ const Cart: React.FC = () => {
                     <span className="text-xs font-bold text-white px-2 select-none">{item.quantity}</span>
                     <button
                       onClick={() => handleQuantityIncrease(item.product.id, item.quantity)}
-                      className="p-1 text-slate-500 hover:text-white transition-colors"
+                      className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
                     >
                       <Plus size={12} />
                     </button>
@@ -157,44 +176,44 @@ const Cart: React.FC = () => {
 
       {/* 2. Right Panel: Order Summary & Coupon Form */}
       <div className="w-full lg:w-96 flex flex-col gap-6">
-        <h2 className="text-2xl font-bold text-white mb-2">Order Summary</h2>
+        <h2 className="text-2xl font-bold text-white font-ui mb-1">Order Summary</h2>
 
         {/* Coupon Apply Form */}
         <Card className="flex flex-col gap-3">
-          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Tag size={12} />
+          <label className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Tag size={14} className="text-[#F8CB2E]" />
             <span>Apply Coupon Code</span>
           </label>
-          <form onSubmit={handleApplyCoupon} className="flex gap-2">
+          <form onSubmit={handleApplyCoupon} className="flex gap-2 font-mono">
             <Input
               type="text"
               placeholder="e.g. FLIPKART50"
               value={couponCode}
               onChange={(e) => setCouponCode(e.target.value)}
-              className="uppercase"
+              className="uppercase font-mono"
             />
-            <Button type="submit" variant="secondary">Apply</Button>
+            <Button type="submit" variant="secondary" className="font-mono text-xs">Apply</Button>
           </form>
-          {couponError && <span className="text-xs text-rose-500">{couponError}</span>}
-          {couponSuccess && <span className="text-xs text-emerald-400">{couponSuccess}</span>}
+          {couponError && <span className="text-xs font-mono text-rose-500">{couponError}</span>}
+          {couponSuccess && <span className="text-xs font-mono text-emerald-400">{couponSuccess}</span>}
         </Card>
 
         {/* Pricing Summary */}
-        <Card className="flex flex-col gap-4 text-sm text-slate-300">
-          <div className="flex justify-between border-b border-slate-800 pb-2">
-            <span className="text-slate-500">Cart Subtotal</span>
+        <Card className="flex flex-col gap-4 text-sm font-mono text-slate-300">
+          <div className="flex justify-between border-b border-white/10 pb-2">
+            <span className="text-slate-400">Cart Subtotal</span>
             <span className="font-semibold text-white">₹{subtotal.toLocaleString()}</span>
           </div>
 
           {appliedDiscount > 0 && (
-            <div className="flex justify-between border-b border-slate-800 pb-2 text-emerald-400">
+            <div className="flex justify-between border-b border-white/10 pb-2 text-emerald-400">
               <span>Coupon Discount</span>
               <span>- ₹{couponDiscountAmount.toLocaleString()}</span>
             </div>
           )}
 
-          <div className="flex justify-between border-b border-slate-800 pb-2">
-            <span className="text-slate-500 flex items-center gap-1">
+          <div className="flex justify-between border-b border-white/10 pb-2">
+            <span className="text-slate-400 flex items-center gap-1">
               <Truck size={14} />
               <span>Shipping Charges</span>
             </span>
@@ -205,21 +224,22 @@ const Cart: React.FC = () => {
 
           <div className="flex justify-between pt-1 text-base font-extrabold text-white">
             <span>Grand Total</span>
-            <span className="text-lg bg-gradient-to-r from-ai-blue to-ai-purple bg-clip-text text-transparent">
+            <span className="text-xl text-[#F8CB2E]">
               ₹{grandTotal.toLocaleString()}
             </span>
           </div>
 
           <Button
             onClick={handleCheckout}
-            className="w-full py-3 text-base mt-4 group"
+            variant="primary"
+            className="w-full py-3 text-sm mt-4 font-mono font-extrabold uppercase tracking-wider group"
           >
             <span>Proceed to Checkout</span>
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </Button>
         </Card>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

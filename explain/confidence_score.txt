@@ -1,0 +1,98 @@
+Viewed confidence_engine.py:1-251
+
+The **Confidence Score** measures how reliable and financially safe a recommended intervention is. It is calculated by the **Confidence Scoring Engine** in [`cart_abandonment_ml/recommendation/confidence_engine.py`](file:///c:/Users/Meet/Downloads/new%20flip/cart_abandonment_ml/recommendation/confidence_engine.py).
+
+The score is a **weighted linear combination of 6 core components**, normalized to $[0, 100\%]$:
+
+---
+
+## 🧮 1. The Mathematical Formula
+
+$$\text{Confidence Score} = \left( w_{\text{prob}} C_{\text{prob}} + w_{\text{shap}} C_{\text{shap}} + w_{\text{cause}} C_{\text{cause}} + w_{\text{sim}} C_{\text{sim}} + w_{\text{hist}} C_{\text{hist}} + w_{\text{rules}} C_{\text{rules}} \right) \times 100$$
+
+Where the weights sum to $1.0$ ($100\%$):
+
+| Component | Weight ($w$) | Description | Formula / Normalized Value |
+| :--- | :--- | :--- | :--- |
+| **$C_{\text{prob}}$** | **20%** (`0.20`) | **XGBoost Certainty** | $2 \times \|P(\text{Abandon}) - 0.5\|$ (Distance from uncertain 50% boundary) |
+| **$C_{\text{cause}}$** | **20%** (`0.20`) | **Root Cause Agent Certainty** | Confidence score returned by Root Cause LLM/Heuristic Agent ($[0, 1]$) |
+| **$C_{\text{shap}}$** | **15%** (`0.15`) | **SHAP Evidence Strength** | $\min\left(1.0, \frac{\sum_{i=1}^3 \|\phi_i\|}{1.5}\right)$ (Sum of top-3 SHAP attributions) |
+| **$C_{\text{sim}}$** | **15%** (`0.15`) | **RAG Vector Similarity** | Cosine similarity score from ChromaDB retrieval ($[0, 1]$) |
+| **$C_{\text{hist}}$** | **15%** (`0.15`) | **Historical Strategy Success** | Empirical conversion success rate of strategy from Knowledge Base ($[0, 1]$) |
+| **$C_{\text{rules}}$** | **15%** (`0.15`) | **Business Rule & Margin Consistency** | $1.0$ if rule compliant; $0.20$ if medium/high discount offered when risk $< 75\%$ |
+
+---
+
+## 🔍 2. Breakdown of the 6 Components
+
+### 1. $C_{\text{prob}}$ — Model Certainty (Weight: 20%)
+* **Why**: A probability of `0.95` or `0.05` is very certain. A probability of `0.51` is very uncertain.
+* **Math**: $C_{\text{prob}} = 2 \cdot |P - 0.5|$.
+  * If $P = 0.95 \implies 2 \cdot |0.95 - 0.5| = 0.90$ (High certainty).
+  * If $P = 0.52 \implies 2 \cdot |0.52 - 0.5| = 0.04$ (Low certainty).
+
+### 2. $C_{\text{shap}}$ — SHAP Evidence Strength (Weight: 15%)
+* **Why**: Measures if there are strong behavioral signals driving the risk or just weak noise.
+* **Math**: Sums top 3 absolute SHAP values normalized by 1.5.
+
+### 3. $C_{\text{cause}}$ — Root Cause Confidence (Weight: 20%)
+* **Why**: Measures how confident the Root Cause Agent is in its diagnosis of the user's friction.
+
+### 4. $C_{\text{sim}}$ — Semantic RAG Similarity (Weight: 15%)
+* **Why**: Measures vector cosine distance between the user's root cause context and the retrieved strategy document in ChromaDB.
+
+### 5. $C_{\text{hist}}$ — Historical Success Rate (Weight: 15%)
+* **Why**: Empirical success rate of the strategy across past e-commerce campaigns.
+
+### 6. $C_{\text{rules}}$ — Business Rule & Margin Auditor (Weight: 15%)
+* **Why**: Protects profit margins. Prevents giving expensive discounts to low-risk users.
+* **Rule**: If an intervention has **Medium/High financial cost** (e.g., direct ₹500 discount) but abandonment risk is **below 75%**, $C_{\text{rules}} = 0.20$ (penalty applied).
+
+---
+
+## 🎯 3. Confidence Levels
+
+The final composite score determines the execution action:
+
+| Score Range | Level | System Action |
+| :--- | :--- | :--- |
+| **$\ge 75\%$** | **HIGH** | **Execute Intervention Immediately** (e.g., offer instant free shipping waiver). |
+| **$45\% \text{ to } 74\%$** | **MEDIUM** | **Trigger Low-Cost / Zero-Cost Nudge** (e.g., show Flipkart Assured trust badge or social proof count). |
+| **$< 45\%$** | **LOW** | **Do Not Intervene** (suppress popups to prevent unnecessary margin loss). |
+
+---
+
+## 💻 Code Implementation
+
+From [`ConfidenceEngine.compute_score()`](file:///c:/Users/Meet/Downloads/new%20flip/cart_abandonment_ml/recommendation/confidence_engine.py#L104-L173):
+
+```python
+# 1. Model Certainty
+c_prob = 2.0 * abs(abandonment_probability - 0.5)
+
+# 2. SHAP Evidence Strength
+shap_sum = sum(abs(f["importance"]) for f in top_shap_features[:3])
+c_shap = min(1.0, shap_sum / 1.5)
+
+# 3. Root Cause, Similarity, Historical Success
+c_cause = root_cause_confidence
+c_sim = semantic_similarity
+c_hist = historical_success_rate
+
+# 4. Business Margin Check
+c_rules = 1.0
+if is_discount and abandonment_probability < 0.75:
+    c_rules = 0.20  # Penalty for unnecessary discount
+
+# Weighted Linear Combination
+weighted_score = (
+    0.20 * c_prob +
+    0.15 * c_shap +
+    0.20 * c_cause +
+    0.15 * c_sim +
+    0.15 * c_hist +
+    0.15 * c_rules
+)
+
+final_score = int(round(weighted_score * 100))
+```

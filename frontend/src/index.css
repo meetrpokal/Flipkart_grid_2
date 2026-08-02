@@ -1,74 +1,125 @@
 @import "tailwindcss";
 
-@theme {
-  --color-brand-blue: #0070f3;
-  --color-brand-purple: #7928ca;
-  --color-ai-blue: #047BD5;
-  --color-ai-purple: #8A2BE2;
-  --color-ai-dark: #0A0D1A;
-  
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-}
+@import '@fontsource/space-grotesk/400.css';
+@import '@fontsource/space-grotesk/500.css';
+@import '@fontsource/space-grotesk/700.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/600.css';
 
 :root {
-  color-scheme: dark light;
+  /* ── Core Palette ── */
+  --color-bg:           #080c14;
+  --color-surface:      #0d1220;
+  --color-surface-2:    #111827;
+  --color-surface-3:    #1a2236;
+  --color-border:       rgba(255, 255, 255, 0.06);
+  --color-border-active: rgba(248, 203, 46, 0.3);
+
+  /* Flipkart Brand */
+  --color-yellow:       #F8CB2E;
+  --color-yellow-glow:  rgba(248, 203, 46, 0.2);
+  --color-yellow-dim:   rgba(248, 203, 46, 0.08);
+
+  /* Semantic Risk Colors */
+  --color-risk-high:    #ef4444;   /* Abandonment likely   */
+  --color-risk-high-bg: rgba(239, 68, 68, 0.08);
+  --color-risk-med:     #f59e0b;   /* Watch this session   */
+  --color-risk-med-bg:  rgba(245, 158, 11, 0.08);
+  --color-risk-low:     #10b981;   /* Likely to convert    */
+  --color-risk-low-bg:  rgba(16, 185, 129, 0.08);
+
+  /* Agent Colors */
+  --color-agent-feature: #60a5fa;  /* Feature Agent        */
+  --color-agent-reason:  #a78bfa;  /* Reasoning Agent      */
+  --color-agent-recommend: #34d399; /* Recommendation Agent */
+
+  /* Text */
+  --color-text:         #e2e8f0;
+  --color-text-muted:   #64748b;
+  --color-text-dim:     #334155;
+
+  /* Typography */
+  --font-ui:    'Space Grotesk', sans-serif;
+  --font-mono:  'JetBrains Mono', monospace;
+
+  /* Spacing */
+  --space-1: 4px;   --space-2: 8px;   --space-3: 12px;
+  --space-4: 16px;  --space-5: 20px;  --space-6: 24px;
+  --space-8: 32px;  --space-10: 40px; --space-12: 48px;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Glass */
+  --glass-bg:     rgba(13, 18, 32, 0.85);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.06);
+  --glass-blur:   blur(16px) saturate(150%);
+
+  /* Transitions */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 600ms;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
 body {
-  margin: 0;
-  padding: 0;
-  font-family: var(--font-sans);
-  background-color: #030712; /* Default Slate-950 dark background */
-  color: #f3f4f6;
+  font-family: var(--font-ui);
+  background: var(--color-bg);
+  color: var(--color-text);
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Custom Glassmorphism Utilities */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* Subtle grid overlay — the "mission control" texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
-.glass-panel-glow {
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(138, 43, 226, 0.25);
-  box-shadow: 0 8px 32px 0 rgba(138, 43, 226, 0.08);
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
 }
 
-.glass-card {
-  background: rgba(30, 41, 59, 0.4);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.font-mono { font-family: var(--font-mono); }
+.font-ui { font-family: var(--font-ui); }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: var(--color-yellow); border-radius: 3px; }
+
+::selection { background: var(--color-yellow); color: #080c14; }
+
+@keyframes pulse-risk {
+  0%, 100% { opacity: 1; box-shadow: 0 0 12px rgba(239, 68, 68, 0.5); }
+  50% { opacity: 0.6; box-shadow: 0 0 4px rgba(239, 68, 68, 0.2); }
 }
 
-.glass-card:hover {
-  border-color: rgba(4, 123, 213, 0.4);
-  background: rgba(30, 41, 59, 0.5);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(4, 123, 213, 0.1);
+.pulse-high-risk {
+  animation: pulse-risk 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Custom Webkit scrollbar for premium theme consistency */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.6; }
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.2);
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(138, 43, 226, 0.3);
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(138, 43, 226, 0.5);
+.animate-pulse-dot {
+  animation: pulse-dot 1.8s ease-in-out infinite;
 }

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { SearchBar, ProductCard, SidebarContainer } from '../components/DesignSystem';
 
@@ -103,21 +104,26 @@ const Store: React.FC = () => {
   };
 
   return (
-    <div className="py-12 px-6 max-w-7xl mx-auto flex flex-col md:flex-row gap-8">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="py-8 px-4 sm:px-6 max-w-[1600px] mx-auto flex flex-col md:flex-row gap-8 text-left relative z-10"
+    >
       {/* 1. Sidebar Filters */}
-      <SidebarContainer title="Filters">
+      <SidebarContainer title="Catalog Filters">
         {/* Category Filter list */}
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Category</label>
-          <div className="flex flex-col gap-1.5 mt-1">
+          <label className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider">Category</label>
+          <div className="flex flex-col gap-1.5 mt-1 font-mono">
             {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => handleCategorySelect(cat)}
-                className={`text-left px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                className={`text-left px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
                   selectedCategory === cat
-                    ? 'bg-ai-blue/15 text-ai-blue border border-ai-blue/20'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+                    ? 'bg-[#F8CB2E]/10 text-[#F8CB2E] border border-[#F8CB2E]/30 font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent'
                 }`}
               >
                 {cat}
@@ -127,15 +133,15 @@ const Store: React.FC = () => {
         </div>
 
         {/* Flipkart Assured Checkbox */}
-        <div className="flex items-center gap-2.5 pt-2 border-t border-slate-800">
+        <div className="flex items-center gap-2.5 pt-3 border-t border-white/10">
           <input
             type="checkbox"
             id="assured"
             checked={assuredOnly}
             onChange={handleAssuredToggle}
-            className="w-4 h-4 rounded border-slate-800 bg-slate-900 text-ai-blue focus:ring-ai-blue/30 focus:ring-1 focus:ring-offset-0 focus:outline-none"
+            className="w-4 h-4 rounded border-white/10 bg-[#0d1220] text-[#F8CB2E] focus:ring-[#F8CB2E]/30 focus:ring-1 focus:ring-offset-0 focus:outline-none cursor-pointer"
           />
-          <label htmlFor="assured" className="text-xs font-semibold text-slate-300 cursor-pointer select-none">
+          <label htmlFor="assured" className="text-xs font-mono font-semibold text-slate-300 cursor-pointer select-none">
             Flipkart Assured Only
           </label>
         </div>
@@ -149,12 +155,12 @@ const Store: React.FC = () => {
             <SearchBar onSearch={handleSearch} value={searchQuery} />
           </div>
           
-          <div className="flex items-center gap-2.5 w-full md:w-auto">
+          <div className="flex items-center gap-2.5 w-full md:w-auto font-mono">
             <label className="text-xs font-semibold text-slate-400 whitespace-nowrap">Sort By</label>
             <select
               value={sortBy}
               onChange={handleSortChange}
-              className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-white text-xs focus:outline-none focus:border-ai-blue focus:ring-1 focus:ring-ai-blue/30 transition-all cursor-pointer w-full md:w-44"
+              className="px-3 py-2 rounded-lg bg-[#0d1220] border border-white/10 text-white text-xs focus:outline-none focus:border-[#F8CB2E] focus:ring-1 focus:ring-[#F8CB2E]/30 transition-all cursor-pointer w-full md:w-48"
             >
               <option value="featured">Featured</option>
               <option value="price-asc">Price: Low to High</option>
@@ -180,12 +186,12 @@ const Store: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-center glass-panel rounded-xl border border-slate-800">
-            <span className="text-sm font-semibold text-slate-500">No matching products found.</span>
+          <div className="flex flex-col items-center justify-center py-20 text-center glass rounded-xl border border-white/10">
+            <span className="text-sm font-mono text-slate-400">No matching products found in catalog.</span>
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

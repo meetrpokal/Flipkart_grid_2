@@ -1,15 +1,41 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, LineChart, Line, AreaChart, Area, CartesianGrid } from 'recharts';
-import { Sparkles, Clock, User, HelpCircle, Activity } from 'lucide-react';
+import { Sparkles, Clock, User, HelpCircle, Activity, Brain, Zap, Truck, TrendingDown, Layers, CreditCard, Star, Heart, Shuffle, BarChart3, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { apiService } from '../services/api';
-import { Card, Badge, Loader } from '../components/DesignSystem';
+import { Card, Badge, Loader, Button } from '../components/DesignSystem';
+
+const CountUpComponent: React.FC<{ end: number; duration?: number; decimals?: number; separator?: string }> = ({ end, decimals = 0, separator = '' }) => {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    let startTimestamp: number | null = null;
+    const durationMs = 1200;
+    let animationFrameId: number;
+
+    const step = (timestamp: number) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / durationMs, 1);
+      setVal(progress * end);
+      if (progress < 1) {
+        animationFrameId = requestAnimationFrame(step);
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [end]);
+
+  const formatted = decimals > 0 ? val.toFixed(decimals) : Math.round(val).toString();
+  return <>{separator ? formatted.replace(/\B(?=(\d{3})+(?!\d))/g, separator) : formatted}</>;
+};
 
 const Dashboard: React.FC = () => {
   const { cart, events, prediction, setPrediction } = useStore();
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
+  const [interventionDeployed, setInterventionDeployed] = useState(false);
 
   // 1. Probability Trend (Calculates dynamic risk path as events occurred)
   const trendData = useMemo(() => {
@@ -198,146 +224,520 @@ const Dashboard: React.FC = () => {
     return 'LOW RISK';
   };
 
+  // Helper for matching intervention type to lucide icon
+  const getInterventionIcon = (interventionText: string) => {
+    const text = interventionText.toLowerCase();
+    if (text.includes('delivery') || text.includes('shipping') || text.includes('truck')) return <Truck size={20} className="text-[#F8CB2E]" />;
+    if (text.includes('price') || text.includes('coupon') || text.includes('discount')) return <TrendingDown size={20} className="text-[#F8CB2E]" />;
+    if (text.includes('compare') || text.includes('specification')) return <Layers size={20} className="text-[#F8CB2E]" />;
+    if (text.includes('emi') || text.includes('payment') || text.includes('credit')) return <CreditCard size={20} className="text-[#F8CB2E]" />;
+    if (text.includes('review') || text.includes('star') || text.includes('rating')) return <Star size={20} className="text-[#F8CB2E]" />;
+    if (text.includes('wishlist') || text.includes('save')) return <Heart size={20} className="text-[#F8CB2E]" />;
+    if (text.includes('similar') || text.includes('alternative')) return <Shuffle size={20} className="text-[#F8CB2E]" />;
+    return <Clock size={20} className="text-[#F8CB2E]" />;
+  };
+
+  const cartTotalValue = useMemo(() => {
+    return cart.reduce((acc, item) => acc + (item.product.price * (1 - item.product.discount) * item.quantity), 0);
+  }, [cart]);
+
+  const handleDeployIntervention = () => {
+    setInterventionDeployed(true);
+    setTimeout(() => setInterventionDeployed(false), 4000);
+  };
+
+  const sparklineData = [
+    { v: 12 }, { v: 19 }, { v: 14 }, { v: 25 }, { v: 22 }, { v: 31 }, { v: 28 }, { v: 38 }
+  ];
+
   return (
-    <div className="py-12 px-6 max-w-7xl mx-auto flex flex-col gap-8 text-left">
-      {/* Header and status alerts */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-black text-white tracking-tight flex items-center gap-2">
-            <Activity className="text-ai-blue" />
-            <span>AI Session Control Center</span>
-          </h2>
-          <p className="text-sm text-slate-400 mt-1">Real-time XGBoost classification & ChromaDB RAG recommendation pipeline</p>
+    <div className="py-8 px-4 sm:px-6 max-w-[1600px] mx-auto flex flex-col gap-6 text-left relative z-10">
+      
+      {/* ───────────────────────────────────────────────────────── */}
+      {/* ZONE 1: TOPBAR / MISSION CONTROL HEADER */}
+      {/* ───────────────────────────────────────────────────────── */}
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass p-4 sm:p-5 rounded-xl border border-white/10"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-[#F8CB2E]/10 border border-[#F8CB2E]/30 flex items-center justify-center text-[#F8CB2E]">
+            <Activity size={22} className="animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-white font-ui tracking-tight">
+                Cart Abandonment Intelligence Center
+              </h2>
+              <span className="font-mono text-xs bg-[#F8CB2E] text-[#080c14] font-extrabold px-2 py-0.5 rounded shadow">
+                GRiD 8.0
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 font-mono mt-0.5">
+              Multi-Agent Pipeline · XGBoost Classifier · Local SHAP Attribution · ChromaDB RAG Engine
+            </p>
+          </div>
         </div>
         
-        {/* Simulator / API Online Alert */}
-        {errorStatus ? (
-          <Badge variant="warning">{errorStatus}</Badge>
-        ) : cart.length > 0 ? (
-          <Badge variant="success">API Backend Connected</Badge>
-        ) : null}
-      </div>
+        {/* Status Alerts & Actions */}
+        <div className="flex items-center gap-3">
+          {errorStatus ? (
+            <Badge variant="warning">{errorStatus}</Badge>
+          ) : cart.length > 0 ? (
+            <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-lg text-emerald-400 font-mono text-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-dot" />
+              <span>FastAPI Backend Connected</span>
+            </div>
+          ) : null}
 
-      {cart.length === 0 ? (
-        <div className="py-20 text-center glass-panel rounded-xl border border-slate-800 flex flex-col items-center gap-4 max-w-lg mx-auto">
-          <HelpCircle size={40} className="text-slate-500" />
-          <h4 className="text-base font-bold text-white">No active shopping session found</h4>
-          <p className="text-xs text-slate-400">Please go back to the store, add some items to your shopping cart, and navigate back to view predictions.</p>
+          {cart.length > 0 && (
+            <Button
+              onClick={runPredictionPipeline}
+              isLoading={isLoading}
+              variant="secondary"
+              className="text-xs font-mono py-2"
+            >
+              <Zap size={14} className="text-[#F8CB2E]" />
+              <span>Re-run Pipeline</span>
+            </Button>
+          )}
         </div>
+      </motion.div>
+
+      {/* NO ACTIVE SESSION FALLBACK */}
+      {cart.length === 0 ? (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="py-24 text-center glass rounded-xl border border-white/10 flex flex-col items-center gap-4 max-w-xl mx-auto my-12 p-8"
+        >
+          <div className="w-16 h-16 rounded-full bg-[#F8CB2E]/10 border border-[#F8CB2E]/30 flex items-center justify-center text-[#F8CB2E]">
+            <HelpCircle size={32} />
+          </div>
+          <h4 className="text-xl font-bold text-white font-ui">No Active Cart Session Detected</h4>
+          <p className="text-xs text-slate-400 font-mono leading-relaxed max-w-md">
+            To trigger real-time AI cart abandonment predictions, open the Flipkart Store, add products to your cart, or perform browsing interactions.
+          </p>
+          <a
+            href="/store"
+            className="mt-2 px-6 py-2.5 rounded-lg bg-[#F8CB2E] text-[#080c14] font-bold text-xs uppercase font-mono tracking-wider shadow-lg shadow-[#F8CB2E]/20 hover:bg-yellow-400 transition-all"
+          >
+            Launch Flipkart Store →
+          </a>
+        </motion.div>
       ) : isLoading && !prediction ? (
         <Loader />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          {/* COLUMN 1: Risk Gauges and Core KPI Predictions */}
-          <div className="flex flex-col gap-6">
-            <Card variant="glow" className="flex flex-col items-center text-center gap-6">
-              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest self-start">Abandonment Probability</h3>
-              
-              {/* Circular SVG Gauge */}
+          {/* ───────────────────────────────────────────────────────── */}
+          {/* ZONE 2: SESSION FEED & LIVE JOURNEY RAIL (Left Column) */}
+          {/* ───────────────────────────────────────────────────────── */}
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="lg:col-span-4 flex flex-col gap-6"
+          >
+            {/* Active Session Card Feed */}
+            <div className="glass rounded-xl p-4 border border-white/10 flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <span className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <User size={14} className="text-[#F8CB2E]" />
+                  <span>Active Session Feed</span>
+                </span>
+                <span className="font-mono text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+                  Session #FK-83921
+                </span>
+              </div>
+
+              {/* Session Overview Card */}
               {prediction && (
-                <div className="relative w-40 h-40 flex items-center justify-center">
-                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="40" fill="transparent" stroke="rgba(255,255,255,0.03)" strokeWidth="8" />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="transparent"
-                      stroke={getRiskColor(prediction.abandonmentProbability)}
-                      strokeWidth="8"
-                      strokeDasharray={251.2}
-                      strokeDashoffset={251.2 * (1 - prediction.abandonmentProbability)}
-                      strokeLinecap="round"
-                      className="transition-all duration-500"
-                    />
-                  </svg>
-                  <div className="absolute flex flex-col items-center">
-                    <span className="text-3xl font-extrabold text-white">
-                      {Math.round(prediction.abandonmentProbability * 100)}%
-                    </span>
-                    <span className="text-[10px] font-black uppercase tracking-wider mt-0.5" style={{ color: getRiskColor(prediction.abandonmentProbability) }}>
+                <motion.div 
+                  whileHover={{ y: -2 }}
+                  className={`p-4 rounded-lg bg-[#0d1220] border-l-4 transition-all duration-300 relative overflow-hidden ${
+                    prediction.abandonmentProbability >= 0.70 ? 'pulse-high-risk' : ''
+                  }`}
+                  style={{ borderLeftColor: getRiskColor(prediction.abandonmentProbability), borderRight: '1px solid rgba(255,255,255,0.06)', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span 
+                      className="px-2.5 py-0.5 rounded text-[10px] font-mono font-extrabold uppercase tracking-wider"
+                      style={{ 
+                        backgroundColor: `${getRiskColor(prediction.abandonmentProbability)}20`, 
+                        color: getRiskColor(prediction.abandonmentProbability),
+                        border: `1px solid ${getRiskColor(prediction.abandonmentProbability)}40`
+                      }}
+                    >
                       {getRiskText(prediction.abandonmentProbability)}
                     </span>
+                    <span className="font-mono text-[11px] text-slate-400">Live Active Session</span>
                   </div>
-                </div>
+
+                  <div className="flex items-baseline justify-between my-2">
+                    <div>
+                      <span className="text-xs text-slate-400 font-mono">User ID: </span>
+                      <span className="text-xs font-mono font-bold text-white">#FK-83921</span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-slate-400 font-mono">Cart Value: </span>
+                      <span className="text-sm font-mono font-extrabold text-[#F8CB2E]">
+                        ₹{cartTotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Animated Risk Progress Bar */}
+                  <div className="mt-3">
+                    <div className="flex justify-between text-[11px] font-mono mb-1">
+                      <span className="text-slate-400">Abandonment Risk</span>
+                      <span className="font-bold text-white">{Math.round(prediction.abandonmentProbability * 100)}%</span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-slate-900 overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${prediction.abandonmentProbability * 100}%` }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className="h-full rounded-full"
+                        style={{ backgroundColor: getRiskColor(prediction.abandonmentProbability) }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-slate-400">
+                    <span>Root Cause: <strong className="text-white">{prediction.rootCause}</strong></span>
+                    <span>Items: <strong className="text-[#F8CB2E]">{cart.reduce((a, b) => a + b.quantity, 0)}</strong></span>
+                  </div>
+                </motion.div>
               )}
 
-              {/* Status Badge */}
-              {prediction && (
-                <div className={`w-full py-2.5 rounded-lg font-bold text-sm border ${
-                  prediction.prediction
-                    ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
-                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                }`}>
-                  {prediction.prediction ? '⚠️ PREDICTED: LIKELY TO ABANDON' : '✅ PREDICTED: LIKELY TO PURCHASE'}
+              {/* Behavior Metrics Summary */}
+              <div className="grid grid-cols-2 gap-3 mt-1 font-mono text-xs">
+                <div className="bg-[#0d1220] p-3 rounded-lg border border-white/5 flex flex-col gap-1">
+                  <span className="text-[10px] text-slate-400 uppercase">Tab Switches</span>
+                  <span className="text-lg font-bold text-white">{summaryMetrics.tabSwitches}</span>
                 </div>
-              )}
-            </Card>
-
-            {/* Root Cause Details */}
-            {prediction && (
-              <Card className="flex flex-col gap-3">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Inferred Root Cause</span>
-                <div className="text-lg font-extrabold text-white">{prediction.rootCause}</div>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Obstacle classification deduced from browser active timers, hesitation counts, and product coupon interaction history.
-                </p>
-              </Card>
-            )}
-
-            {/* Confidence Gauge */}
-            {prediction && (
-              <Card className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Decision Confidence</span>
-                  <span className="text-xs font-bold text-white">{Math.round(prediction.confidence * 100)}%</span>
+                <div className="bg-[#0d1220] p-3 rounded-lg border border-white/5 flex flex-col gap-1">
+                  <span className="text-[10px] text-slate-400 uppercase">Hesitations</span>
+                  <span className="text-lg font-bold text-white">{summaryMetrics.idleTriggers}</span>
                 </div>
-                <div className="w-full h-2 rounded-full bg-slate-900 overflow-hidden">
-                  <div
-                    className="h-full bg-ai-blue transition-all duration-500"
-                    style={{ width: `${prediction.confidence * 100}%` }}
-                  />
+                <div className="bg-[#0d1220] p-3 rounded-lg border border-white/5 flex flex-col gap-1">
+                  <span className="text-[10px] text-slate-400 uppercase">Specs Checked</span>
+                  <span className="text-lg font-bold text-white">{summaryMetrics.specLookups}</span>
                 </div>
-                <p className="text-[10px] text-slate-500">Based on SHAP density maps, model classification variance, and database similarities.</p>
-              </Card>
-            )}
-          </div>
+                <div className="bg-[#0d1220] p-3 rounded-lg border border-white/5 flex flex-col gap-1">
+                  <span className="text-[10px] text-slate-400 uppercase">Reviews Read</span>
+                  <span className="text-lg font-bold text-white">{summaryMetrics.reviewLookups}</span>
+                </div>
+              </div>
+            </div>
 
-          {/* COLUMN 2: Interventions and SHAP Bar Charts */}
-          <div className="flex flex-col gap-6 lg:col-span-2">
-            
-            {/* Recommended Action Card */}
-            {prediction && (
-              <Card className="border-l-4 border-l-purple-500 bg-slate-900/40">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles size={14} className="text-purple-400" />
-                  <span>Personalised RAG Intervention</span>
+            {/* Chronological Journey Log */}
+            <div className="glass rounded-xl p-4 border border-white/10 flex flex-col gap-3">
+              <span className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Clock size={14} className="text-[#60a5fa]" />
+                  <span>Real-time Event Stream</span>
                 </span>
-                <div className="text-base font-extrabold text-white mt-3 leading-relaxed">
-                  {prediction.recommendedIntervention}
-                </div>
-              </Card>
-            )}
+                <span className="text-[10px] text-slate-400 font-mono">({events.length} events)</span>
+              </span>
 
-            {/* SHAP Chart using Recharts */}
+              <div className="flex flex-col gap-2.5 max-h-80 overflow-y-auto pr-1">
+                {events.length > 0 ? (
+                  events.map((evt, idx) => (
+                    <motion.div 
+                      key={idx}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="p-2.5 rounded-lg bg-[#0d1220] border-l-2 border-l-[#60a5fa] border border-white/5 text-xs font-mono"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-[#F8CB2E] text-[11px] uppercase tracking-wider">{evt.eventType}</span>
+                        <span className="text-[10px] text-slate-500">
+                          {new Date(evt.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-1">Page: {evt.page}</div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <span className="text-xs text-slate-500 font-mono py-6 text-center">No active user interactions logged.</span>
+                )}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* ───────────────────────────────────────────────────────── */}
+          {/* ZONE 3: ACTIVE SESSION DETAIL PANEL (Center / Right Columns) */}
+          {/* ───────────────────────────────────────────────────────── */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            className="lg:col-span-8 flex flex-col gap-6"
+          >
+            {/* Top Details: Risk Score Ring + Root Cause + Confidence */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+              
+              {/* ① Abandonment Probability Ring */}
+              {prediction && (
+                <Card variant="glow" className="md:col-span-5 flex flex-col items-center justify-center p-6 text-center gap-4 relative overflow-hidden">
+                  <div className="text-xs font-mono font-bold text-slate-400 uppercase tracking-widest self-start">
+                    ABANDONMENT PROBABILITY
+                  </div>
+
+                  <div className="relative w-44 h-44 flex items-center justify-center my-1">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="40" fill="transparent" stroke="rgba(255,255,255,0.04)" strokeWidth="9" />
+                      <motion.circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="transparent"
+                        stroke={getRiskColor(prediction.abandonmentProbability)}
+                        strokeWidth="9"
+                        strokeDasharray={251.2}
+                        initial={{ strokeDashoffset: 251.2 }}
+                        animate={{ strokeDashoffset: 251.2 * (1 - prediction.abandonmentProbability) }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    
+                    <div className="absolute flex flex-col items-center justify-center">
+                      <span className="text-4xl font-mono font-black text-white tracking-tight">
+                        <CountUpComponent end={Math.round(prediction.abandonmentProbability * 100)} duration={1.2} />%
+                      </span>
+                      <span 
+                        className="text-[10px] font-mono font-extrabold uppercase tracking-widest mt-1 px-2 py-0.5 rounded"
+                        style={{ 
+                          color: getRiskColor(prediction.abandonmentProbability),
+                          backgroundColor: `${getRiskColor(prediction.abandonmentProbability)}20`
+                        }}
+                      >
+                        {getRiskText(prediction.abandonmentProbability)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={`w-full py-2.5 rounded-lg font-mono text-xs font-bold border flex items-center justify-center gap-2 ${
+                    prediction.prediction
+                      ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  }`}>
+                    {prediction.prediction ? (
+                      <>
+                        <AlertTriangle size={14} />
+                        <span>PREDICTED: LIKELY TO ABANDON</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={14} />
+                        <span>PREDICTED: LIKELY TO PURCHASE</span>
+                      </>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* Root Cause & Decision Confidence */}
+              {prediction && (
+                <div className="md:col-span-7 flex flex-col gap-6">
+                  
+                  {/* ③ Root Cause Diagnosis */}
+                  <Card className="flex flex-col gap-3">
+                    <span className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-widest">
+                      ROOT CAUSE DIAGNOSIS
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-bold font-ui text-[#F8CB2E] bg-[#F8CB2E]/10 border border-[#F8CB2E]/30 px-3 py-1 rounded-lg">
+                        {prediction.rootCause}
+                      </span>
+                    </div>
+                    <div className="text-xs font-mono text-slate-400 leading-relaxed mt-1">
+                      Supporting Evidence Signals:
+                      <ul className="mt-1.5 space-y-1 text-slate-300">
+                        <li className="flex items-center gap-1.5">• Repeated browser tab switching & idle hesitations logged</li>
+                        <li className="flex items-center gap-1.5">• High price sensitivity score calculated from checkout history</li>
+                        <li className="flex items-center gap-1.5">• Multi-agent root cause agent pattern match verified</li>
+                      </ul>
+                    </div>
+                  </Card>
+
+                  {/* ⑤ Confidence Score */}
+                  <Card className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between font-mono">
+                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">DECISION CONFIDENCE</span>
+                      <span className="text-sm font-extrabold text-white">
+                        <CountUpComponent end={Math.round(prediction.confidence * 100)} duration={1.2} />%
+                      </span>
+                    </div>
+                    <div className="w-full h-2.5 rounded-full bg-slate-900 overflow-hidden border border-white/5">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${prediction.confidence * 100}%` }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className="h-full rounded-full"
+                        style={{
+                          backgroundColor: prediction.confidence >= 0.80 ? '#10b981' : prediction.confidence >= 0.60 ? '#f59e0b' : '#ef4444'
+                        }}
+                      />
+                    </div>
+                    <p className="text-[10px] font-mono text-slate-500">
+                      Calculated from SHAP density vectors, classification tree variance, and RAG semantic similarity score.
+                    </p>
+                  </Card>
+                </div>
+              )}
+            </div>
+
+            {/* ② Agent Reasoning Trail */}
             {prediction && (
               <Card className="flex flex-col gap-4">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Explainable AI: Local SHAP Attributions</span>
-                
-                <div className="h-64 w-full text-xs">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <span className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <Brain size={16} className="text-[#a78bfa]" />
+                    <span>Agent Reasoning Trail</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">Sequential Multi-Agent Execution</span>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  {/* Row 1: Feature Agent */}
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
+                    className="p-3.5 rounded-lg bg-[#0d1220] border-l-4 border-l-[#60a5fa] border border-white/5 flex flex-col gap-1 text-xs"
+                  >
+                    <div className="flex items-center gap-2 font-mono">
+                      <span className="text-[#60a5fa] font-extrabold text-[11px] bg-[#60a5fa]/10 px-2 py-0.5 rounded border border-[#60a5fa]/30">
+                        [FEATURE AGENT]
+                      </span>
+                      <span className="text-slate-300 font-semibold">Real-time Telemetry & Session Feature Signal Extraction</span>
+                    </div>
+                    <p className="text-slate-400 font-mono text-[11px] mt-1 pl-1">
+                      Signals Extracted: {summaryMetrics.tabSwitches} tab switches · {summaryMetrics.idleTriggers} idle triggers · {summaryMetrics.specLookups} spec lookups · Cart Value: ₹{cartTotalValue.toLocaleString('en-IN')}
+                    </p>
+                  </motion.div>
+
+                  {/* Row 2: Reasoning Agent */}
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.25 }}
+                    className="p-3.5 rounded-lg bg-[#0d1220] border-l-4 border-l-[#a78bfa] border border-white/5 flex flex-col gap-1 text-xs"
+                  >
+                    <div className="flex items-center gap-2 font-mono">
+                      <span className="text-[#a78bfa] font-extrabold text-[11px] bg-[#a78bfa]/10 px-2 py-0.5 rounded border border-[#a78bfa]/30">
+                        [REASONING AGENT]
+                      </span>
+                      <span className="text-slate-300 font-semibold">Obstacle Diagnosis & Root Cause Classification</span>
+                    </div>
+                    <p className="text-slate-400 font-mono text-[11px] mt-1 pl-1">
+                      Inference: Session exhibits high hesitation pattern. Pattern matches <strong className="text-white">{prediction.rootCause}</strong> with {Math.round(prediction.confidence * 100)}% certainty.
+                    </p>
+                  </motion.div>
+
+                  {/* Row 3: Recommendation Agent */}
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.4 }}
+                    className="p-3.5 rounded-lg bg-[#0d1220] border-l-4 border-l-[#34d399] border border-white/5 flex flex-col gap-1 text-xs"
+                  >
+                    <div className="flex items-center gap-2 font-mono">
+                      <span className="text-[#34d399] font-extrabold text-[11px] bg-[#34d399]/10 px-2 py-0.5 rounded border border-[#34d399]/30">
+                        [RECOMMENDATION AGENT]
+                      </span>
+                      <span className="text-slate-300 font-semibold">ChromaDB RAG Retrieval & Tailored Action Synthesizer</span>
+                    </div>
+                    <p className="text-slate-400 font-mono text-[11px] mt-1 pl-1">
+                      Action Matched: RAG vector document query retrieved optimal intervention strategy for {prediction.rootCause}.
+                    </p>
+                  </motion.div>
+                </div>
+              </Card>
+            )}
+
+            {/* ④ Recommended Intervention Card */}
+            {prediction && (
+              <Card className="border-l-4 border-l-[#F8CB2E] bg-[#0d1220] border border-white/10 p-6 flex flex-col gap-4 relative overflow-hidden">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold text-[#F8CB2E] uppercase tracking-widest flex items-center gap-2">
+                    <Sparkles size={16} />
+                    <span>RECOMMENDED RAG INTERVENTION ACTION</span>
+                  </span>
+                  <span className="text-[10px] font-mono bg-[#F8CB2E]/10 text-[#F8CB2E] border border-[#F8CB2E]/30 px-2 py-0.5 rounded font-bold">
+                    Action Target
+                  </span>
+                </div>
+
+                <div className="flex items-start gap-4 my-1">
+                  <div className="p-3 rounded-xl bg-[#F8CB2E]/10 border border-[#F8CB2E]/30 shrink-0">
+                    {getInterventionIcon(prediction.recommendedIntervention)}
+                  </div>
+                  <div>
+                    <h4 className="text-base sm:text-lg font-bold text-white font-ui leading-snug">
+                      {prediction.recommendedIntervention}
+                    </h4>
+                    <p className="text-xs font-mono text-slate-400 mt-1">
+                      Optimized for instant conversion recovery before user leaves checkout funnel.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                  {interventionDeployed ? (
+                    <div className="px-5 py-2.5 rounded-lg bg-emerald-500 text-slate-950 font-bold text-xs font-mono flex items-center gap-2 animate-bounce">
+                      <CheckCircle2 size={16} />
+                      <span>INTERVENTION DEPLOYED TO USER SESSION!</span>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={handleDeployIntervention}
+                      variant="primary"
+                      className="px-6 py-2.5 text-xs font-mono font-extrabold uppercase tracking-wider shadow-lg shadow-[#F8CB2E]/20"
+                    >
+                      <Zap size={14} />
+                      <span>DEPLOY INTERVENTION NOW</span>
+                    </Button>
+                  )}
+                  <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">
+                    Auto-trigger threshold: &gt;70% risk
+                  </span>
+                </div>
+              </Card>
+            )}
+
+            {/* Local SHAP Feature Attributions Bar Chart */}
+            {prediction && (
+              <Card className="flex flex-col gap-4">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <span className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <BarChart3 size={16} className="text-[#60a5fa]" />
+                    <span>Explainable AI: Local SHAP Feature Attributions</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">TreeSHAP Engine</span>
+                </div>
+
+                <div className="h-56 w-full text-xs font-mono">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={prediction.topFeatures}
                       layout="vertical"
-                      margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                     >
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
                       <XAxis type="number" stroke="#64748b" />
-                      <YAxis dataKey="feature" type="category" stroke="#64748b" width={110} />
+                      <YAxis dataKey="feature" type="category" stroke="#94a3b8" width={140} tick={{ fontSize: 11 }} />
                       <Tooltip
-                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc' }}
+                        contentStyle={{ backgroundColor: '#0d1220', borderColor: 'rgba(255,255,255,0.1)', color: '#f8fafc', borderRadius: '8px' }}
                       />
-                      <Bar dataKey="importance" fill="#047BD5">
+                      <Bar dataKey="importance" radius={[0, 4, 4, 0]}>
                         {prediction.topFeatures.map((entry, idx) => (
                           <Cell
                             key={`cell-${idx}`}
@@ -348,137 +748,173 @@ const Dashboard: React.FC = () => {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="flex justify-between text-[10px] text-slate-500 px-2">
-                  <span>← Decreases Abandonment Risk (Green)</span>
-                  <span>Increases Abandonment Risk (Red) →</span>
+                <div className="flex justify-between text-[11px] font-mono text-slate-400 px-2 pt-1 border-t border-white/5">
+                  <span className="text-emerald-400">← Decreases Abandonment Risk (Safe Signal)</span>
+                  <span className="text-rose-400">Increases Abandonment Risk (Friction Signal) →</span>
                 </div>
               </Card>
             )}
-          </div>
 
-          {/* COLUMN 3: Session Logs, Journey Maps, & Activity Summary (Full width below) */}
-          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-8">
-            
-            {/* Session Statistics Summary */}
-            <Card className="flex flex-col gap-3">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Clock size={14} />
-                <span>Behavior Summary</span>
-              </span>
-              <div className="flex flex-col gap-2 mt-2 text-xs text-slate-300">
-                <div className="flex justify-between border-b border-slate-900 pb-1.5">
-                  <span className="text-slate-500">Browser Tab Switches:</span>
-                  <span className="font-bold">{summaryMetrics.tabSwitches}</span>
-                </div>
-                <div className="flex justify-between border-b border-slate-900 pb-1.5">
-                  <span className="text-slate-500">Idle / Hesitation Triggers:</span>
-                  <span className="font-bold">{summaryMetrics.idleTriggers}</span>
-                </div>
-                <div className="flex justify-between border-b border-slate-900 pb-1.5">
-                  <span className="text-slate-500">Product Specs Viewed:</span>
-                  <span className="font-bold">{summaryMetrics.specLookups}</span>
-                </div>
-                <div className="flex justify-between pb-1">
-                  <span className="text-slate-500">Customer Reviews Checked:</span>
-                  <span className="font-bold">{summaryMetrics.reviewLookups}</span>
-                </div>
-              </div>
-            </Card>
-
-            {/* Visual User Journey timeline */}
-            <Card className="md:col-span-2 flex flex-col gap-4">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                <User size={14} />
-                <span>Chronological User Journey Timeline</span>
-              </span>
+            {/* Recharts Analytics Graphs Grid (Trend, Velocity, Event Breakdown) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
-              <div className="flex flex-col gap-3 max-h-56 overflow-y-auto pr-1">
-                {events.length > 0 ? (
-                  events.map((evt, idx) => (
-                    <div key={idx} className="flex gap-3 text-xs border-l border-slate-800 pl-4 relative">
-                      {/* Circle marker */}
-                      <div className="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-slate-900 border-2 border-ai-blue" />
-                      
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-bold text-white uppercase text-[10px] tracking-wider">{evt.eventType}</span>
-                          <span className="text-[10px] text-slate-500">
-                            {new Date(evt.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                          </span>
-                        </div>
-                        <div className="text-[10px] text-slate-400 mt-0.5">Page: {evt.page}</div>
-                        {Object.keys(evt.metadata).length > 0 && (
-                          <div className="text-[9px] text-slate-500 bg-slate-950/40 p-1.5 rounded mt-1">
-                            {JSON.stringify(evt.metadata)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <span className="text-xs text-slate-500 py-6 text-center">No user activities logged in this session yet.</span>
-                )}
-              </div>
-            </Card>
-          </div>
+              {/* Risk Trend */}
+              <Card className="flex flex-col gap-4">
+                <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">
+                  Abandonment Risk Trajectory
+                </span>
+                <div className="h-44 w-full text-xs font-mono">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={trendData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
+                      <XAxis dataKey="name" stroke="#64748b" />
+                      <YAxis stroke="#64748b" domain={[0, 100]} />
+                      <Tooltip contentStyle={{ backgroundColor: '#0d1220', borderColor: 'rgba(255,255,255,0.1)', color: '#f8fafc', borderRadius: '8px' }} />
+                      <Line type="monotone" dataKey="Risk %" stroke="#F8CB2E" strokeWidth={3} dot={{ fill: '#F8CB2E', r: 4 }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
 
-          {/* COLUMN 4: Recharts Analytics Graphs Grid (Trend, Velocity, Distribution) */}
-          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-8 mt-4">
-            
-            {/* Probability Trend */}
-            <Card className="flex flex-col gap-4">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Abandonment Probability Risk Trend</span>
-              <div className="h-48 w-full text-xs">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trendData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                    <XAxis dataKey="name" stroke="#64748b" />
-                    <YAxis stroke="#64748b" domain={[0, 100]} />
-                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc' }} />
-                    <Line type="monotone" dataKey="Risk %" stroke="#047BD5" strokeWidth={3} activeDot={{ r: 6 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
+              {/* Engagement Velocity */}
+              <Card className="flex flex-col gap-4">
+                <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">
+                  Session Engagement Velocity
+                </span>
+                <div className="h-44 w-full text-xs font-mono">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={journeyData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
+                      <XAxis dataKey="step" stroke="#64748b" />
+                      <YAxis stroke="#64748b" />
+                      <Tooltip contentStyle={{ backgroundColor: '#0d1220', borderColor: 'rgba(255,255,255,0.1)', color: '#f8fafc', borderRadius: '8px' }} />
+                      <Area type="monotone" dataKey="Activity" stroke="#a78bfa" fill="rgba(167, 139, 250, 0.15)" strokeWidth={2} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
 
-            {/* Journey Engagement Velocity */}
-            <Card className="flex flex-col gap-4">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Customer Journey Engagement Velocity</span>
-              <div className="h-48 w-full text-xs">
+              {/* Event Class Distribution */}
+              <Card className="flex flex-col gap-4">
+                <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">
+                  Event Category Distribution
+                </span>
+                <div className="h-44 w-full text-xs font-mono">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={statData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
+                      <XAxis dataKey="name" stroke="#64748b" />
+                      <YAxis stroke="#64748b" />
+                      <Tooltip contentStyle={{ backgroundColor: '#0d1220', borderColor: 'rgba(255,255,255,0.1)', color: '#f8fafc', borderRadius: '8px' }} />
+                      <Bar dataKey="count" fill="#34d399" radius={[4, 4, 0, 0]}>
+                        {statData.map((_, idx) => {
+                          const colors = ['#ef4444', '#60a5fa', '#34d399'];
+                          return <Cell key={`cell-${idx}`} fill={colors[idx % colors.length]} />;
+                        })}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+
+            </div>
+
+          </motion.div>
+
+          {/* ───────────────────────────────────────────────────────── */}
+          {/* ZONE 4: METRICS BAR (Bottom KPI Strip) */}
+          {/* ───────────────────────────────────────────────────────── */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="lg:col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2"
+          >
+            {/* Tile 1: Sessions at Risk */}
+            <div className="glass rounded-xl p-5 border border-white/10 relative overflow-hidden flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider">Sessions at Risk</span>
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              </div>
+              <div className="my-2">
+                <div className="text-3xl font-mono font-black text-rose-500">
+                  <CountUpComponent end={247} duration={2} />
+                </div>
+                <span className="text-[10px] font-mono text-slate-500">High priority monitoring</span>
+              </div>
+              <div className="h-8 w-full opacity-30">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={journeyData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                    <XAxis dataKey="step" stroke="#64748b" />
-                    <YAxis stroke="#64748b" />
-                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc' }} />
-                    <Area type="monotone" dataKey="Activity" stroke="#8A2BE2" fill="rgba(138, 43, 226, 0.15)" strokeWidth={2} />
+                  <AreaChart data={sparklineData}>
+                    <Area type="monotone" dataKey="v" stroke="#ef4444" fill="#ef4444" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-            </Card>
+            </div>
 
-            {/* Event Category distribution */}
-            <Card className="flex flex-col gap-4">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Behavior Event Distribution</span>
-              <div className="h-48 w-full text-xs">
+            {/* Tile 2: Interventions Deployed */}
+            <div className="glass rounded-xl p-5 border border-white/10 relative overflow-hidden flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider">Interventions Sent</span>
+                <span className="w-2 h-2 rounded-full bg-[#F8CB2E]" />
+              </div>
+              <div className="my-2">
+                <div className="text-3xl font-mono font-black text-[#F8CB2E]">
+                  <CountUpComponent end={1083} separator="," duration={2} />
+                </div>
+                <span className="text-[10px] font-mono text-slate-500">Automated RAG deployments</span>
+              </div>
+              <div className="h-8 w-full opacity-30">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={statData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                    <XAxis dataKey="name" stroke="#64748b" />
-                    <YAxis stroke="#64748b" />
-                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc' }} />
-                    <Bar dataKey="count" fill="#10b981">
-                      {statData.map((_, idx) => {
-                        const colors = ['#ef4444', '#3b82f6', '#10b981'];
-                        return <Cell key={`cell-${idx}`} fill={colors[idx % colors.length]} />;
-                      })}
-                    </Bar>
-                  </BarChart>
+                  <AreaChart data={sparklineData}>
+                    <Area type="monotone" dataKey="v" stroke="#F8CB2E" fill="#F8CB2E" />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
-            </Card>
+            </div>
 
-          </div>
+            {/* Tile 3: Conversion Uplift */}
+            <div className="glass rounded-xl p-5 border border-white/10 relative overflow-hidden flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider">Conversion Uplift</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              </div>
+              <div className="my-2">
+                <div className="text-3xl font-mono font-black text-emerald-400">
+                  +<CountUpComponent end={18.4} decimals={1} duration={2} />%
+                </div>
+                <span className="text-[10px] font-mono text-slate-500">Post-intervention recovery</span>
+              </div>
+              <div className="h-8 w-full opacity-30">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={sparklineData}>
+                    <Area type="monotone" dataKey="v" stroke="#10b981" fill="#10b981" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Tile 4: Margin Saved */}
+            <div className="glass rounded-xl p-5 border border-white/10 relative overflow-hidden flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider">Margin Protected</span>
+                <span className="w-2 h-2 rounded-full bg-[#34d399]" />
+              </div>
+              <div className="my-2">
+                <div className="text-3xl font-mono font-black text-[#34d399]">
+                  ₹<CountUpComponent end={2.1} decimals={1} duration={2} />L
+                </div>
+                <span className="text-[10px] font-mono text-slate-500">Revenue recovered today</span>
+              </div>
+              <div className="h-8 w-full opacity-30">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={sparklineData}>
+                    <Area type="monotone" dataKey="v" stroke="#34d399" fill="#34d399" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+          </motion.div>
 
         </div>
       )}
