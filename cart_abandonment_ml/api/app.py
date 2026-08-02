@@ -1,0 +1,489 @@
+"""app.py — Production-Grade FastAPI Backend for Cart Abandonment Recommendation System
+
+This module implements the central API service for serving live inferences and recommendations.
+It coordinates the execution of the entire E2E pipeline:
+
+    Preprocess → Predict → SHAP → Root Cause → RAG → Recommendation → Confidence
+
+Design Architecture
+-------------------
+* **Dependency Injection**: Recommender components (Predictor, SHAP, RAG, agents)
+  are managed by a singleton ``PipelineService`` injected via FastAPI ``Depends``.
+* **Thread-Safety**: All underlying engines are read-only after initialization,
+  making the service thread-safe for high-throughput ASGI serving.
+* **Input Alignment**: Arbitrary session dictionaries are accepted and auto-aligned to the
+  128-dimensional scaled feature space (missing fields default to scaled zero).
+* **Robust Error Handling**: Exception handlers map server/prediction errors to standard JSON error responses.
+
+Endpoints
+---------
+* ``GET  /health``  — Returns model loaded status, configuration, and feature counts.
+* ``POST /predict`` — Primary entry point executing the full prediction pipeline.
+"""
+
+from __future__ import annotations
+from dataclasses import asdict
+
+import logging
+import os
+import time
+from typing import Any, Dict, List, Optional
+
+import uvicorn
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+# Import all component layers
+from cart_abandonment_ml.config.config import Config, config as default_config
+from cart_abandonment_ml.explainability.shap_engine import ShapEngine
+from cart_abandonment_ml.reasoning.root_cause_agent import RootCauseAgent
+from cart_abandonment_ml.recommendation.confidence_engine import ConfidenceEngine
+from cart_abandonment_ml.recommendation.recommender_agent import RecommenderAgent
+from cart_abandonment_ml.retrieval.rag_retriever import RagRetriever
+
+# Setup API logging
+logging.basicConfig(level=logging.INFO, format=default_config.LOG_FORMAT)
+logger = logging.getLogger(__name__)
+
+
+# ===========================================================================
+# Pydantic Schemas for Input/Output Validation
+# ===========================================================================
+
+class SessionRequest(BaseModel):
+    """Input payload for a live shopping session.
+
+    Accepts an arbitrary dictionary mapping feature names to values.
+    Missing features are automatically aligned to mean-neutral scaled values (0.0).
+    """
+    session_data: Dict[str, Any] = Field(
+        ...,
+        description="Dictionary containing behavioral and context features.",
+        example={
+            "persona": "Price Sensitive Shopper",
+            "hesitation_score": 2.5,
+            "trust_score": 0.65,
+            "price_sensitivity_score": 1.8,
+            "competitor_price_checked": 1,
+            "tab_switch_count": 5,
+            "total_shipping_charges": 50.0,
+            "cart_value": 4500.0,
+            "total_items_in_cart": 3,
+            "session_duration_seconds": 120,
+        }
+    )
+    product_metadata: Optional[Dict[str, Any]] = Field(
+        None, description="Optional catalog details (category, brand, etc.)"
+    )
+    user_metadata: Optional[Dict[str, Any]] = Field(
+        None, description="Optional buyer context (purchase history, tier, etc.)"
+    )
+
+
+class FeatureAttribution(BaseModel):
+    """SHAP feature attribution schema."""
+    feature: str
+    importance: float
+    direction: str
+
+
+class PredictionResponse(BaseModel):
+    """Consolidated response payload mapping to requirement specification."""
+    abandonment_probability: float = Field(..., description="XGBoost prediction probability [0, 1]")
+    prediction: bool = Field(..., description="Decision boundary classification (True = Abandon)")
+    root_cause: str = Field(..., description="Inferred root cause reason for abandonment")
+    recommended_intervention: str = Field(..., description="RAG retrieved specific intervention")
+    confidence: float = Field(..., description="Computed decision confidence score [0, 1]")
+    top_features: List[FeatureAttribution] = Field(..., description="Top 5 SHAP drivers driving this score")
+
+
+class HealthResponse(BaseModel):
+    """Server health status metrics."""
+    status: str
+    model_loaded: bool
+    feature_count: int
+    threshold: float
+    gemini_enabled: bool
+    mlflow_enabled: bool
+
+
+# ===========================================================================
+# End-to-End Pipeline Service (Dependency Injection Target)
+# ===========================================================================
+
+class PipelineService:
+    """Consolidated pipeline coordinator that loads and wraps all ML models.
+
+    Instantiated once at application startup.
+    """
+
+    def __init__(self, cfg: Optional[Config] = None) -> None:
+        self.cfg = cfg or default_config
+        logger.info("Initializing PipelineService engines...")
+        t0 = time.perf_counter()
+
+        # 1. SHAP Engine (loads classifier, preprocessor, and feature names)
+        self.shap_engine = ShapEngine(self.cfg)
+        self.feature_count = len(self.shap_engine._feature_names)
+
+        # 2. Reasoning Agent
+        self.root_cause_agent = RootCauseAgent(self.cfg)
+
+        # 3. RAG Retrieval Layer
+        self.retriever = RagRetriever(self.cfg)
+
+        # 4. Recommendation Agent
+        self.recommender = RecommenderAgent(self.cfg)
+
+        # 5. Confidence Engine
+        self.confidence_engine = ConfidenceEngine()
+
+        logger.info("PipelineService ready in %.2fs", time.perf_counter() - t0)
+
+    def process_session(self, request: SessionRequest) -> PredictionResponse:
+        """Execute the complete inference pipeline sequentially."""
+        session = request.session_data
+
+        # --- Layer 1 & 2 & 3: Preprocess, Predict, and SHAP ---
+        # explain_session handles StandardScaler alignment and SHAP generation
+        explanation = self.shap_engine.explain_session(
+            session=session,
+            top_n=5  # Retrieve top 5 features
+        )
+
+        probability = explanation.abandonment_probability
+        prediction = (explanation.predicted_class == "Likely Abandon")
+        top_shap_features = [
+            {"feature": f.feature, "importance": f.importance, "direction": f.direction}
+            for f in explanation.top_features
+        ]
+
+        # --- Layer 4: Root Cause Agent ---
+        root_cause_res = self.root_cause_agent.analyse(
+            session=session,
+            abandonment_probability=probability,
+            top_shap_features=top_shap_features,
+            product_info=request.product_metadata,
+            user_history=request.user_metadata,
+        )
+        root_cause = root_cause_res.root_cause
+        cause_conf = root_cause_res.confidence
+
+        # --- Layer 5: RAG Retrieval ---
+        # Assemble query context from top feature details
+        context_str = f"Inferred Root Cause: {root_cause}. Top SHAP Drivers: " + ", ".join(
+            f"{f['feature']} ({f['importance']:+.3f})" for f in top_shap_features
+        )
+        retrieval_res = self.retriever.retrieve_interventions(
+            root_cause=root_cause,
+            session_context=context_str,
+            top_k=5
+        )
+        candidates = [asdict(item) for item in retrieval_res.interventions]
+
+        # --- Layer 6: Recommendation Agent ---
+        rec_res = self.recommender.recommend(
+            abandonment_probability=probability,
+            root_cause=root_cause,
+            retrieved_knowledge=candidates,
+        )
+        intervention = rec_res.recommended_intervention
+        cost = rec_res.business_cost
+        best_candidate = candidates[0] if candidates else {}
+        sim_score = best_candidate.get("similarity_score", 0.70)
+        success_rate = best_candidate.get("success_rate", 0.60)
+
+        # --- Layer 7: Confidence Engine ---
+        conf_res = self.confidence_engine.compute_score(
+            abandonment_probability=probability,
+            top_shap_features=top_shap_features,
+            root_cause_confidence=cause_conf,
+            semantic_similarity=sim_score,
+            historical_success_rate=success_rate,
+            business_cost=cost,
+        )
+        # Normalise final confidence to 0-1 float to match schema specifications
+        final_confidence = float(conf_res.confidence_score / 100.0)
+
+        # Assemble features payload
+        attributions = [
+            FeatureAttribution(
+                feature=f["feature"],
+                importance=f["importance"],
+                direction=f["direction"]
+            )
+            for f in top_shap_features
+        ]
+
+        return PredictionResponse(
+            abandonment_probability=probability,
+            prediction=prediction,
+            root_cause=root_cause,
+            recommended_intervention=intervention,
+            confidence=final_confidence,
+            top_features=attributions
+        )
+
+
+# ===========================================================================
+# FastAPI App setup
+# ===========================================================================
+
+app = FastAPI(
+    title="Flipkart Cart Abandonment Recommendation Service",
+    version="1.0.0",
+    description="Production-grade API serving prediction, SHAP attribution, and RAG interventions.",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# In-memory datastore mapping sessionId -> data
+db_events: Dict[str, List[Dict[str, Any]]] = {}
+db_predictions: Dict[str, Dict[str, Any]] = {}
+
+# Global service instance holder
+_pipeline_service: Optional[PipelineService] = None
+
+
+@app.on_event("startup")
+def startup_event() -> None:
+    """Start up services and pre-load all assets."""
+    global _pipeline_service
+    _pipeline_service = PipelineService(default_config)
+
+
+def get_pipeline() -> PipelineService:
+    """Dependency injection helper."""
+    if _pipeline_service is None:
+        raise RuntimeError("PipelineService has not been started.")
+    return _pipeline_service
+
+
+# ===========================================================================
+class LogEventItem(BaseModel):
+    sessionId: str
+    userId: str
+    timestamp: str
+    page: str
+    eventType: str
+    metadata: Dict[str, Any]
+
+class LogEventsRequest(BaseModel):
+    events: List[LogEventItem]
+
+
+# ===========================================================================
+# Routes
+# ===========================================================================
+
+@app.get("/health", response_model=HealthResponse)
+def health_check(service: PipelineService = Depends(get_pipeline)) -> HealthResponse:
+    """Verify application health and configuration metrics."""
+    return HealthResponse(
+        status="healthy",
+        model_loaded=(service.shap_engine._classifier is not None),
+        feature_count=service.feature_count,
+        threshold=service.cfg.CLASSIFICATION_THRESHOLD,
+        gemini_enabled=(service.root_cause_agent._model is not None),
+        mlflow_enabled=service.cfg.ENABLE_MLFLOW,
+    )
+
+
+@app.get("/products")
+def get_products():
+    """Returns the static Flipkart catalog of 10 products."""
+    return [
+        {
+            "id": "prod-1",
+            "name": "Flipkart SmartBuy 20000mAh Power Bank",
+            "brand": "Flipkart SmartBuy",
+            "category": "Electronics",
+            "rating": 4.3,
+            "seller": "SuperComNet",
+            "price": 1899,
+            "discount": 0.35,
+            "isFlipkartAssured": True,
+            "image": "https://images.unsplash.com/photo-1609592424109-dd9892f1b177?w=500&auto=format&fit=crop&q=60",
+            "description": "Fast charging 20000mAh lithium polymer power bank with dual USB outputs and Type-C input support."
+        },
+        {
+            "id": "prod-2",
+            "name": "boAt Rockerz 450 Bluetooth Headphone",
+            "brand": "boAt",
+            "category": "Electronics",
+            "rating": 4.1,
+            "seller": "RetailNet",
+            "price": 2990,
+            "discount": 0.50,
+            "isFlipkartAssured": True,
+            "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=60",
+            "description": "Wireless Bluetooth headphones featuring 40mm dynamic drivers and up to 15 hours of playback time."
+        },
+        {
+            "id": "prod-3",
+            "name": "Mi Smart TV 4A 32-inch LED TV",
+            "brand": "Mi",
+            "category": "Home Appliances",
+            "rating": 4.4,
+            "seller": "OmniTechRetail",
+            "price": 15999,
+            "discount": 0.20,
+            "isFlipkartAssured": True,
+            "image": "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=500&auto=format&fit=crop&q=60",
+            "description": "HD Ready Android smart TV featuring cinematic stereo sound and Google Assistant integration."
+        },
+        {
+            "id": "prod-4",
+            "name": "Premium Cotton Casual Check Shirt",
+            "brand": "Roadster",
+            "category": "Fashion",
+            "rating": 3.9,
+            "seller": "StyleNet",
+            "price": 1299,
+            "discount": 0.40,
+            "isFlipkartAssured": False,
+            "image": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500&auto=format&fit=crop&q=60",
+            "description": "100% premium cotton slim fit casual check shirt with double chest patch pockets."
+        },
+        {
+            "id": "prod-5",
+            "name": "L'Oreal Paris Extraordinary Hair Oil",
+            "brand": "L'Oreal Paris",
+            "category": "Beauty & Personal Care",
+            "rating": 4.5,
+            "seller": "BeautyPlus",
+            "price": 499,
+            "discount": 0.15,
+            "isFlipkartAssured": True,
+            "image": "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?w=500&auto=format&fit=crop&q=60",
+            "description": "Premium hair serum enriched with 6 rare flower oils, perfect for split ends and deep nourishment."
+        },
+        {
+            "id": "prod-6",
+            "name": "Philips Daily Collection Air Fryer",
+            "brand": "Philips",
+            "category": "Home Appliances",
+            "rating": 4.6,
+            "seller": "KitchenStore",
+            "price": 9995,
+            "discount": 0.25,
+            "isFlipkartAssured": True,
+            "image": "https://images.unsplash.com/photo-1621972750749-0fbb1abb7736?w=500&auto=format&fit=crop&q=60",
+            "description": "Healthy air frying technology using hot air circulation to cook delicious meals with up to 90% less oil."
+        },
+        {
+            "id": "prod-7",
+            "name": "Monopoly Deal Card Game for Families",
+            "brand": "Hasbro",
+            "category": "Books & Toys",
+            "rating": 4.2,
+            "seller": "ToyWorld",
+            "price": 299,
+            "discount": 0.10,
+            "isFlipkartAssured": False,
+            "image": "https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=500&auto=format&fit=crop&q=60",
+            "description": "Fast-paced, addictive card game where your luck can change in the play of a single card."
+        },
+        {
+            "id": "prod-8",
+            "name": "Cosmic Byte CB-GK-16 Mechanical Keyboard",
+            "brand": "Cosmic Byte",
+            "category": "Electronics",
+            "rating": 4.0,
+            "seller": "GamerNet",
+            "price": 2499,
+            "discount": 0.30,
+            "isFlipkartAssured": True,
+            "image": "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?w=500&auto=format&fit=crop&q=60",
+            "description": "Blue switch mechanical gaming keyboard with customisable RGB backlighting profiles and anti-ghosting."
+        },
+        {
+            "id": "prod-9",
+            "name": "Premium Leather Bi-fold Men's Wallet",
+            "brand": "Puma",
+            "category": "Fashion",
+            "rating": 4.2,
+            "seller": "PumaRetail",
+            "price": 1499,
+            "discount": 0.45,
+            "isFlipkartAssured": True,
+            "image": "https://images.unsplash.com/photo-1627124709743-4ac5036f3c02?w=500&auto=format&fit=crop&q=60",
+            "description": "Genuine high-grade grain leather bi-fold wallet featuring 6 card compartments and separate coin pocket."
+        },
+        {
+            "id": "prod-10",
+            "name": "Neutrogena Hydro Boost Water Gel",
+            "brand": "Neutrogena",
+            "category": "Beauty & Personal Care",
+            "rating": 4.4,
+            "seller": "SkincareIndia",
+            "price": 1150,
+            "discount": 0.10,
+            "isFlipkartAssured": True,
+            "image": "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500&auto=format&fit=crop&q=60",
+            "description": "Clinically proven oil-free water gel moisturiser containing hyaluronic acid for deep hydration."
+        }
+    ]
+
+
+@app.post("/log-events")
+def log_events(request: LogEventsRequest):
+    """Stores batch event logs inside in-memory datastores."""
+    for item in request.events:
+        sid = item.sessionId
+        if sid not in db_events:
+            db_events[sid] = []
+        db_events[sid].append(item.dict())
+    return {"status": "success", "logged_count": len(request.events)}
+
+
+@app.get("/analysis/{sessionId}")
+def get_session_analysis(sessionId: str):
+    """Retrieves structured summary of session activity logs and latest recommendations."""
+    events_list = db_events.get(sessionId, [])
+    latest_pred = db_predictions.get(sessionId, None)
+    
+    return {
+        "sessionId": sessionId,
+        "events_count": len(events_list),
+        "latest_prediction": latest_pred,
+        "events": events_list
+    }
+
+
+@app.post("/predict", response_model=PredictionResponse)
+def predict_cart_status(
+    request: SessionRequest,
+    service: PipelineService = Depends(get_pipeline)
+) -> PredictionResponse:
+    """Score a session and return root causes and recommendations.
+
+    Executes the full pipeline:
+      StandardScaler → XGBoost Classifier → SHAP TreeExplainer → Gemini Root Cause → ChromaDB RAG → Recommender Engine → Confidence Auditor.
+    """
+    try:
+      response = service.process_session(request)
+      
+      # Save prediction snapshot to db_predictions
+      sid = request.session_data.get("sessionId", "default-session")
+      db_predictions[sid] = response.dict()
+      
+      return response
+    except Exception as exc:
+      logger.error("API Pipeline Exception: %s", exc, exc_info=True)
+      raise HTTPException(
+          status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+          detail=f"Inference execution failed: {str(exc)}"
+      )
+
+
+# CLI wrapper for local server testing
+if __name__ == "__main__":
+    uvicorn.run("cart_abandonment_ml.api.app:app", host="127.0.0.1", port=8000, reload=False)

@@ -1,0 +1,33 @@
+# Virtual Environments
+.venv/
+venv/
+env/
+
+# Python cache and build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Large Datasets
+*.csv
+*.parquet
+
+# Node / Frontend
+node_modules/
+dist/
+build/
+.next/
+.cache/
+
+# Environment and Secrets
+.env
+.env.local
+.env.*.local
+
+# IDEs and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

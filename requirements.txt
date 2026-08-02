@@ -1,0 +1,17 @@
+numpy
+pandas
+scipy
+pyarrow
+xgboost
+scikit-learn
+joblib
+shap
+mlflow
+matplotlib
+seaborn
+google-generativeai
+chromadb
+fastapi
+uvicorn
+pydantic
+streamlit
