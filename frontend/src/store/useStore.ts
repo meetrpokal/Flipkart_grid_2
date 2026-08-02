@@ -1,19 +1,9 @@
 import { create } from 'zustand';
 import { apiService } from '../services/api';
+import type { Product } from '../types/product';
+import { INITIAL_PRODUCTS } from '../data/productsData';
 
-export interface Product {
-  id: string;
-  name: string;
-  brand: string;
-  category: string;
-  rating: number;
-  seller: string;
-  price: number;
-  discount: number;
-  isFlipkartAssured: boolean;
-  image: string;
-  description: string;
-}
+export type { Product };
 
 export interface CartItem {
   product: Product;
@@ -99,138 +89,7 @@ export const useStore = create<StateStore>((set, get) => ({
   userId: "USR-8824",
   theme: 'dark',
   
-  products: [
-    {
-      id: "prod-1",
-      name: "Flipkart SmartBuy 20000mAh Power Bank",
-      brand: "Flipkart SmartBuy",
-      category: "Electronics",
-      rating: 4.3,
-      seller: "SuperComNet",
-      price: 1899,
-      discount: 0.35,
-      isFlipkartAssured: true,
-      image: "https://images.unsplash.com/photo-1609592424109-dd9892f1b177?w=500&auto=format&fit=crop&q=60",
-      description: "Fast charging 20000mAh lithium polymer power bank with dual USB outputs and Type-C input support."
-    },
-    {
-      id: "prod-2",
-      name: "boAt Rockerz 450 Bluetooth Headphone",
-      brand: "boAt",
-      category: "Electronics",
-      rating: 4.1,
-      seller: "RetailNet",
-      price: 2990,
-      discount: 0.50,
-      isFlipkartAssured: true,
-      image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=60",
-      description: "Wireless Bluetooth headphones featuring 40mm dynamic drivers and up to 15 hours of playback time."
-    },
-    {
-      id: "prod-3",
-      name: "Mi Smart TV 4A 32-inch LED TV",
-      brand: "Mi",
-      category: "Home Appliances",
-      rating: 4.4,
-      seller: "OmniTechRetail",
-      price: 15999,
-      discount: 0.20,
-      isFlipkartAssured: true,
-      image: "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=500&auto=format&fit=crop&q=60",
-      description: "HD Ready Android smart TV featuring cinematic stereo sound and Google Assistant integration."
-    },
-    {
-      id: "prod-4",
-      name: "Premium Cotton Casual Check Shirt",
-      brand: "Roadster",
-      category: "Fashion",
-      rating: 3.9,
-      seller: "StyleNet",
-      price: 1299,
-      discount: 0.40,
-      isFlipkartAssured: false,
-      image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500&auto=format&fit=crop&q=60",
-      description: "100% premium cotton slim fit casual check shirt with double chest patch pockets."
-    },
-    {
-      id: "prod-5",
-      name: "L'Oreal Paris Extraordinary Hair Oil",
-      brand: "L'Oreal Paris",
-      category: "Beauty & Personal Care",
-      rating: 4.5,
-      seller: "BeautyPlus",
-      price: 499,
-      discount: 0.15,
-      isFlipkartAssured: true,
-      image: "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?w=500&auto=format&fit=crop&q=60",
-      description: "Premium hair serum enriched with 6 rare flower oils, perfect for split ends and deep nourishment."
-    },
-    {
-      id: "prod-6",
-      name: "Philips Daily Collection Air Fryer",
-      brand: "Philips",
-      category: "Home Appliances",
-      rating: 4.6,
-      seller: "KitchenStore",
-      price: 9995,
-      discount: 0.25,
-      isFlipkartAssured: true,
-      image: "https://images.unsplash.com/photo-1621972750749-0fbb1abb7736?w=500&auto=format&fit=crop&q=60",
-      description: "Healthy air frying technology using hot air circulation to cook delicious meals with up to 90% less oil."
-    },
-    {
-      id: "prod-7",
-      name: "Monopoly Deal Card Game for Families",
-      brand: "Hasbro",
-      category: "Books & Toys",
-      rating: 4.2,
-      seller: "ToyWorld",
-      price: 299,
-      discount: 0.10,
-      isFlipkartAssured: false,
-      image: "https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=500&auto=format&fit=crop&q=60",
-      description: "Fast-paced, addictive card game where your luck can change in the play of a single card."
-    },
-    {
-      id: "prod-8",
-      name: "Cosmic Byte CB-GK-16 Mechanical Keyboard",
-      brand: "Cosmic Byte",
-      category: "Electronics",
-      rating: 4.0,
-      seller: "GamerNet",
-      price: 2499,
-      discount: 0.30,
-      isFlipkartAssured: true,
-      image: "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?w=500&auto=format&fit=crop&q=60",
-      description: "Blue switch mechanical gaming keyboard with customisable RGB backlighting profiles and anti-ghosting."
-    },
-    {
-      id: "prod-9",
-      name: "Premium Leather Bi-fold Men's Wallet",
-      brand: "Puma",
-      category: "Fashion",
-      rating: 4.2,
-      seller: "PumaRetail",
-      price: 1499,
-      discount: 0.45,
-      isFlipkartAssured: true,
-      image: "https://images.unsplash.com/photo-1627124709743-4ac5036f3c02?w=500&auto=format&fit=crop&q=60",
-      description: "Genuine high-grade grain leather bi-fold wallet featuring 6 card compartments and separate coin pocket."
-    },
-    {
-      id: "prod-10",
-      name: "Neutrogena Hydro Boost Water Gel",
-      brand: "Neutrogena",
-      category: "Beauty & Personal Care",
-      rating: 4.4,
-      seller: "SkincareIndia",
-      price: 1150,
-      discount: 0.10,
-      isFlipkartAssured: true,
-      image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500&auto=format&fit=crop&q=60",
-      description: "Clinically proven oil-free water gel moisturiser containing hyaluronic acid for deep hydration."
-    }
-  ],
+  products: INITIAL_PRODUCTS,
   currentProduct: null,
   cart: [],
   wishlist: [],
