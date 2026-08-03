@@ -46,6 +46,7 @@ from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional
 
 from cart_abandonment_ml.config.config import Config, config as default_config
+from cart_abandonment_ml.recommendation.multilingual import translate_nudge, SUPPORTED_LANGUAGES
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,8 @@ class RecommendationResult:
     priority: str  # "High" | "Medium" | "Low"
     confidence_score: float
     source: str  # "gemini" or "fallback_heuristic"
+    language: str = "English"
+    multilingual_nudge: str = ""
     latency_ms: float = 0.0
     evidence_trail: List[Dict[str, Any]] = None
     rejected_alternatives: List[Dict[str, Any]] = None
@@ -230,6 +233,7 @@ def _heuristic_recommendation(
     root_cause: str,
     retrieved_knowledge: List[Dict[str, Any]],
     top_shap_features: Optional[List[Dict[str, Any]]] = None,
+    language: str = "English",
 ) -> RecommendationResult:
     """Rule-based synthesis fallback.
 
@@ -242,14 +246,17 @@ def _heuristic_recommendation(
     evidence = build_evidence_trail(top_shap_features, None, root_cause)
 
     if not retrieved_knowledge:
+        rec_default = "Trigger a standard cart abandonment reminder notification after 24 hours."
         return RecommendationResult(
-            recommended_intervention="Trigger a standard cart abandonment reminder notification after 24 hours.",
+            recommended_intervention=rec_default,
             reason="Heuristic fallback: No retrieved knowledge candidates available.",
             expected_success_rate=0.15,
             business_cost="None",
             priority="Low",
             confidence_score=0.90,
             source="fallback_heuristic",
+            language=language,
+            multilingual_nudge=translate_nudge(rec_default, language),
             evidence_trail=evidence,
             rejected_alternatives=[],
         )
@@ -288,8 +295,11 @@ def _heuristic_recommendation(
         else "Low"
     )
 
+    rec_text = best_doc.get("recommended_intervention", "")
+    nudge = translate_nudge(rec_text, language)
+
     return RecommendationResult(
-        recommended_intervention=best_doc.get("recommended_intervention", ""),
+        recommended_intervention=rec_text,
         reason=(
             f"Heuristic fallback: Selected candidate {selected_id} matching root cause '{root_cause}'. "
             f"Cost '{best_cost}' prioritised for conversion rate optimization relative to abandonment risk ({abandonment_probability:.2f})."
@@ -299,6 +309,8 @@ def _heuristic_recommendation(
         priority=priority,
         confidence_score=0.85,
         source="fallback_heuristic",
+        language=language,
+        multilingual_nudge=nudge,
         evidence_trail=evidence,
         rejected_alternatives=rejected,
     )
@@ -378,6 +390,7 @@ class RecommenderAgent:
         business_rules: Optional[Dict[str, Any]] = None,
         top_shap_features: Optional[List[Dict[str, Any]]] = None,
         session_data: Optional[Dict[str, Any]] = None,
+        language: str = "English",
     ) -> RecommendationResult:
         """Generate the structured recommendation.
 
@@ -395,13 +408,15 @@ class RecommenderAgent:
             SHAP attributions for evidence trail mapping.
         session_data : dict, optional
             Raw session signals for evidence trail.
+        language : str, optional
+            Target language for the intervention nudge.
         """
         t0 = time.perf_counter()
         evidence = build_evidence_trail(top_shap_features, session_data, root_cause)
 
         # Heuristic path
         if self._model is None:
-            res = _heuristic_recommendation(abandonment_probability, root_cause, retrieved_knowledge, top_shap_features)
+            res = _heuristic_recommendation(abandonment_probability, root_cause, retrieved_knowledge, top_shap_features, language=language)
             res.latency_ms = round((time.perf_counter() - t0) * 1000, 2)
             return res
 
@@ -428,6 +443,7 @@ class RecommenderAgent:
                     break
             
             rejected = build_rejected_alternatives(selected_doc_id, retrieved_knowledge, abandonment_probability)
+            nudge = translate_nudge(rec_text, language)
 
             return RecommendationResult(
                 recommended_intervention=rec_text,
@@ -437,6 +453,8 @@ class RecommenderAgent:
                 priority=parsed["priority"],
                 confidence_score=parsed["confidence_score"],
                 source="gemini",
+                language=language,
+                multilingual_nudge=nudge,
                 latency_ms=round(latency_ms, 2),
                 evidence_trail=evidence,
                 rejected_alternatives=rejected,
@@ -444,7 +462,7 @@ class RecommenderAgent:
 
         except Exception as exc:
             logger.warning("Recommender Gemini call failed: %s. Falling back to rules.", exc)
-            res = _heuristic_recommendation(abandonment_probability, root_cause, retrieved_knowledge, top_shap_features)
+            res = _heuristic_recommendation(abandonment_probability, root_cause, retrieved_knowledge, top_shap_features, language=language)
             res.latency_ms = round((time.perf_counter() - t0) * 1000, 2)
             return res
 

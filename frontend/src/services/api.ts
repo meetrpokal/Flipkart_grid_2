@@ -1,8 +1,8 @@
 import axios from 'axios';
 import type { LoggedEvent } from '../store/useStore';
 
-// The FastAPI backend runs on localhost:8080
-const API_BASE_URL = 'http://127.0.0.1:8080';
+// The FastAPI backend runs on localhost:8000
+const API_BASE_URL = 'http://127.0.0.1:8000';
 
 const client = axios.create({
   baseURL: API_BASE_URL,
@@ -32,13 +32,15 @@ export const apiService = {
    * {
    *   "session_data": { ... },
    *   "product_metadata": { ... },
-   *   "user_metadata": { ... }
+   *   "user_metadata": { ... },
+   *   "language": "Hindi"
    * }
    */
   predictAbandonment: async (payload: {
     session_data: Record<string, any>;
     product_metadata?: Record<string, any> | null;
     user_metadata?: Record<string, any> | null;
+    language?: string;
   }): Promise<any> => {
     try {
       const response = await client.post('/predict', payload);

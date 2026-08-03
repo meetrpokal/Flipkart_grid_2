@@ -104,6 +104,10 @@ if not model_loaded:
 # Left Panel: User and Behavioral Feature Inputs
 # ===========================================================================
 st.sidebar.header("🛒 Session Behavioral Inputs")
+language = st.sidebar.selectbox(
+    "🌐 Intervention Language", 
+    ["English", "Hindi (हिंदी)", "Bengali (বাংলা)", "Tamil (தமிழ்)", "Telugu (తెలుగు)", "Kannada (ಕನ್ನಡ)", "Marathi (मরাठी)", "Gujarati (ગુજરાતી)"]
+)
 
 # High importance inputs based on SHAP rankings
 hesitation = st.sidebar.slider("Hesitation Score", 0.0, 10.0, 2.5, help="Time spent hovering or delayed clicks")
@@ -140,33 +144,39 @@ history_returns = st.sidebar.slider("Past Return Rate", 0.0, 1.0, 0.05)
 session_dict = {
     "hesitation_score": hesitation,
     "trust_score": trust,
-    "price_sensitivity_score": price_sensitivity,
-    "quality_uncertainty_score": quality_uncertainty,
-    "purchase_intent_score": purchase_intent,
-    "total_shipping_charges": shipping,
-    "cart_value": cart_value,
-    "total_items_in_cart": items_in_cart,
+    "price_sensitivity": price_sensitivity,
+    "quality_uncertainty": quality_uncertainty,
+    "purchase_intent": purchase_intent,
+    "shipping_charges": shipping,
+    "cart_total_value": cart_value,
+    "items_in_cart": items_in_cart,
     "payment_failures": payment_failures,
     "checkout_restart_count": checkout_restarts,
     "tab_switch_count": tab_switches,
     "competitor_price_checked": 1 if competitor_checked == "Yes" else 0,
     "is_premium_member": 1 if is_premium == "Yes" else 0,
-    "total_historical_purchases": history_purchases,
-    "persona": "Price Sensitive Shopper" if price_sensitivity > 2.0 else "Regular Active User"
 }
 
-request_obj = SessionRequest(
+product_meta = {
+    "category": category,
+    "brand_tier": brand_tier,
+}
+
+user_meta = {
+    "total_purchases": history_purchases,
+    "return_rate": history_returns,
+}
+
+request_payload = SessionRequest(
     session_data=session_dict,
-    product_metadata={"category": category, "brand_tier": brand_tier, "price": cart_value},
-    user_metadata={"total_purchases": history_purchases, "return_rate": history_returns}
+    product_metadata=product_meta,
+    user_metadata=user_meta,
+    language=language
 )
 
-
-# ===========================================================================
-# Run Prediction Pipeline
-# ===========================================================================
+# Execute core production pipeline via PipelineService
 with st.spinner("Executing Real-time Prediction & Retrieval Pipeline..."):
-    res = pipeline.process_session(request_obj)
+    res = pipeline.process_session(request_payload)
 
 
 # ===========================================================================
@@ -232,10 +242,11 @@ with col2:
     st.markdown(
         f"""
         <div class="metric-card" style="border-left-color: #F8E831; background-color: #fff9e6;">
-            <div class="metric-label">RECOMMENDED FLIPKART INTERVENTION</div>
+            <div class="metric-label">RECOMMENDED FLIPKART INTERVENTION ({language})</div>
             <div style="font-size: 18px; font-weight: 700; margin-top: 10px; color: #333;">
                 {res.recommended_intervention}
             </div>
+            {f'<div style="font-size: 16px; font-weight: 600; margin-top: 10px; padding: 8px; background-color: #047BD5; color: #fff; border-radius: 4px;">🌐 Multilingual Nudge: {res.multilingual_nudge}</div>' if res.multilingual_nudge and language != "English" else ''}
         </div>
         """,
         unsafe_allow_html=True

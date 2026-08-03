@@ -30,6 +30,7 @@ export interface PredictionState {
   prediction: boolean;
   rootCause: string;
   recommendedIntervention: string;
+  multilingualNudge?: string;
   confidence: number;
   topFeatures: FeatureAttribution[];
 }
@@ -39,6 +40,7 @@ interface StateStore {
   sessionId: string;
   userId: string;
   theme: 'dark' | 'light';
+  language: string;
   
   // Product Catalog
   products: Product[];
@@ -65,6 +67,7 @@ interface StateStore {
   
   // Actions
   toggleTheme: () => void;
+  setLanguage: (lang: string) => void;
   setSessionId: (id: string) => void;
   setUserId: (id: string) => void;
   setProducts: (products: Product[]) => void;
@@ -88,6 +91,7 @@ export const useStore = create<StateStore>((set, get) => ({
   sessionId: generateId(),
   userId: "USR-8824",
   theme: 'dark',
+  language: 'English',
   
   products: INITIAL_PRODUCTS,
   currentProduct: null,
@@ -102,6 +106,7 @@ export const useStore = create<StateStore>((set, get) => ({
   },
   
   toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+  setLanguage: (language) => set({ language }),
   setSessionId: (id) => set({ sessionId: id }),
   setUserId: (id) => set({ userId: id }),
   setProducts: (products) => set({ products }),
@@ -145,6 +150,12 @@ export const useStore = create<StateStore>((set, get) => ({
   clearCart: () => set({ cart: [] }),
   
   logEvent: (page, eventType, metadata = {}) => {
+    // Suppress internal background log generation while inside Mission Control (/dashboard),
+    // except for explicit transition events like MOUSE_LEAVE.
+    if ((page === '/dashboard' || page === 'Dashboard' || page === 'Mission Control') && eventType !== 'MOUSE_LEAVE') {
+      return;
+    }
+
     const state = get();
     const newEvent: LoggedEvent = {
       sessionId: state.sessionId,

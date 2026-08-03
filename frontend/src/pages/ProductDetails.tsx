@@ -45,9 +45,10 @@ const ProductDetails: React.FC = () => {
   useEffect(() => {
     if (!product) return;
 
-    // Reset gallery image to main product image
+    // Reset gallery image and active tab to specs on product change
     setSelectedImage(product.images?.[0] || product.image);
     setZoomImage(false);
+    setActiveTab('specs');
     setVisibleReviewsCount(6);
 
     // Initialize bundle selections

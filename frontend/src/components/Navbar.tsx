@@ -1,11 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, LayoutDashboard, Store as StoreIcon, Sun, Moon, Cpu } from 'lucide-react';
+import { ShoppingCart, LayoutDashboard, Store as StoreIcon, Sun, Moon, Cpu, Globe } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { motion } from 'framer-motion';
+import { t } from '../utils/multilingual';
 
 const Navbar: React.FC = () => {
-  const { cart, theme, toggleTheme } = useStore();
+  const { cart, theme, toggleTheme, language, setLanguage } = useStore();
   const location = useLocation();
   
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
@@ -45,7 +46,7 @@ const Navbar: React.FC = () => {
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-dot shadow-[0_0_8px_#10b981]" />
         <span className="text-emerald-400 font-semibold">LIVE</span>
         <span className="text-slate-500">|</span>
-        <span className="text-slate-300">Monitoring Active Shopping Sessions</span>
+        <span className="text-slate-300">{t("Monitoring Active Shopping Sessions", language)}</span>
       </div>
 
       {/* Navigation Options & Agent Status Indicators */}
@@ -64,15 +65,34 @@ const Navbar: React.FC = () => {
           </span>
         </div>
 
+        {/* Multilingual Recommendation Selector */}
+        <div className="flex items-center gap-1 bg-slate-900/80 border border-white/10 px-2 py-1 rounded-md text-xs font-mono text-slate-300">
+          <Globe size={13} className="text-[#F8CB2E]" />
+          <select 
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="bg-transparent text-slate-200 text-xs font-mono focus:outline-none cursor-pointer pr-1"
+          >
+            <option value="English" className="bg-slate-900 text-white">English</option>
+            <option value="Hindi" className="bg-slate-900 text-white">Hindi (हिंदी)</option>
+            <option value="Bengali" className="bg-slate-900 text-white">Bengali (বাংলা)</option>
+            <option value="Tamil" className="bg-slate-900 text-white">Tamil (தமிழ்)</option>
+            <option value="Telugu" className="bg-slate-900 text-white">Telugu (తెలుగు)</option>
+            <option value="Kannada" className="bg-slate-900 text-white">Kannada (ಕನ್ನಡ)</option>
+            <option value="Marathi" className="bg-slate-900 text-white">Marathi (मराठी)</option>
+            <option value="Gujarati" className="bg-slate-900 text-white">Gujarati (ગુજરાતી)</option>
+          </select>
+        </div>
+
         <Link to="/store" className={linkClass('/store')}>
           <StoreIcon size={14} />
-          <span className="hidden sm:inline">Store</span>
+          <span className="hidden sm:inline">{t("Store", language)}</span>
         </Link>
         
         <Link to="/cart" className={linkClass('/cart')}>
           <div className="relative flex items-center gap-1.5">
             <ShoppingCart size={14} />
-            <span className="hidden sm:inline">Cart</span>
+            <span className="hidden sm:inline">{t("Cart", language)}</span>
             {totalItems > 0 && (
               <span className="absolute -top-3.5 -right-2 flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-[#F8CB2E] text-[#080c14] shadow-sm">
                 {totalItems}
@@ -83,7 +103,7 @@ const Navbar: React.FC = () => {
 
         <Link to="/dashboard" className={linkClass('/dashboard')}>
           <LayoutDashboard size={14} />
-          <span className="hidden sm:inline font-mono">Mission Control</span>
+          <span className="hidden sm:inline font-mono">{t("Mission Control", language)}</span>
         </Link>
 
         {/* Theme toggle switch */}

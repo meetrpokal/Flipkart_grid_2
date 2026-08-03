@@ -80,6 +80,9 @@ class SessionRequest(BaseModel):
     user_metadata: Optional[Dict[str, Any]] = Field(
         None, description="Optional buyer context (purchase history, tier, etc.)"
     )
+    language: Optional[str] = Field(
+        "English", description="Target language for intervention nudge (e.g. English, Hindi, Bengali, Tamil, etc.)"
+    )
 
 
 class FeatureAttribution(BaseModel):
@@ -96,6 +99,7 @@ class PredictionResponse(BaseModel):
     root_cause: str = Field(..., description="Primary inferred root cause reason")
     secondary_cause: Optional[str] = Field("None", description="Secondary root cause factor")
     recommended_intervention: str = Field(..., description="RAG retrieved specific intervention")
+    multilingual_nudge: Optional[str] = Field("", description="Intervention nudge translated into target language")
     confidence: float = Field(..., description="Computed decision confidence score [0, 1]")
     confidence_score: int = Field(..., description="Confidence score out of 100")
     action_tier: str = Field(..., description="Action gate tier: FULL, LOW_COST, INFO_ONLY, NOOP")
@@ -201,8 +205,10 @@ class PipelineService:
             retrieved_knowledge=candidates,
             top_shap_features=top_shap_features,
             session_data=session,
+            language=request.language or "English",
         )
         intervention = rec_res.recommended_intervention
+        multilingual_nudge = rec_res.multilingual_nudge
         cost = rec_res.business_cost
         engine_mode = "LLM_GEMINI" if rec_res.source == "gemini" else "HEURISTIC_RULE_BASED"
 
@@ -237,6 +243,7 @@ class PipelineService:
             root_cause=root_cause,
             secondary_cause=secondary_cause,
             recommended_intervention=intervention,
+            multilingual_nudge=multilingual_nudge,
             confidence=round(final_confidence, 4),
             confidence_score=conf_res.confidence_score,
             action_tier=conf_res.action_tier,

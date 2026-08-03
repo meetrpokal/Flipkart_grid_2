@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, LineChart, Line, AreaChart, Area, CartesianGrid } from 'recharts';
-import { Sparkles, Clock, User, HelpCircle, Activity, Brain, Zap, Truck, TrendingDown, Layers, CreditCard, Star, Heart, Shuffle, BarChart3, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Sparkles, Clock, User, HelpCircle, Activity, Brain, Zap, Truck, TrendingDown, Layers, CreditCard, Star, Heart, Shuffle, BarChart3, CheckCircle2, AlertTriangle, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { apiService } from '../services/api';
 import { Card, Badge, Loader, Button } from '../components/DesignSystem';
+import { translateNudge } from '../utils/multilingual';
 
 const CountUpComponent: React.FC<{ end: number; duration?: number; decimals?: number; separator?: string }> = ({ end, decimals = 0, separator = '' }) => {
   const [val, setVal] = useState(0);
@@ -31,7 +32,7 @@ const CountUpComponent: React.FC<{ end: number; duration?: number; decimals?: nu
 };
 
 const Dashboard: React.FC = () => {
-  const { cart, events, prediction, setPrediction } = useStore();
+  const { cart, events, prediction, setPrediction, language } = useStore();
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
@@ -53,7 +54,7 @@ const Dashboard: React.FC = () => {
         "Risk %": Math.round(currentProb * 100)
       };
     });
-    return points.length > 0 ? points : [{ name: "Start", "Risk %": 35 }];
+    return points.length > 0 ? points : [{ name: "#1", "Risk %": 35 }];
   }, [events]);
 
   // 2. Journey Activity Velocity (Cumulative events counts)
@@ -66,7 +67,7 @@ const Dashboard: React.FC = () => {
         "Activity": total
       };
     });
-    return points.length > 0 ? points : [{ step: "Start", "Activity": 0 }];
+    return points.length > 0 ? points : [{ step: "#1", "Activity": 0 }];
   }, [events]);
 
   // 3. Session Statistics by Event Class
@@ -82,6 +83,23 @@ const Dashboard: React.FC = () => {
     ];
   }, [events]);
 
+  // 4. Formatted SHAP Feature Names for Crisp Labeling
+  const shapChartData = useMemo(() => {
+    if (!prediction?.topFeatures) return [];
+    return prediction.topFeatures.map(f => {
+      let displayName = f.feature
+        .replace(/_score$/i, '')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
+      if (displayName === 'Time Between Cart And Checkout') displayName = 'Time Cart to Checkout';
+      if (displayName === 'Free Delivery Eligible') displayName = 'Free Delivery Eligible';
+      return {
+        ...f,
+        displayName
+      };
+    });
+  }, [prediction]);
+
   // ---------------------------------------------------------------------------
   // Real-time API Inference logic
   // ---------------------------------------------------------------------------
@@ -94,7 +112,7 @@ const Dashboard: React.FC = () => {
     setIsLoading(true);
     setErrorStatus(null);
 
-    // 1. Calculate features from Zustand state
+    // Calculate features from Zustand state
     const hesitationScore = events.filter(e => e.eventType === 'IDLE').length * 2.5 + 
                            events.filter(e => e.eventType === 'ZOOM_IMAGE').length * 1.5;
     const tabSwitchCount = events.filter(e => e.eventType === 'TAB_SWITCH').length;
@@ -146,7 +164,8 @@ const Dashboard: React.FC = () => {
       const result = await apiService.predictAbandonment({
         session_data,
         product_metadata,
-        user_metadata
+        user_metadata,
+        language
       });
 
       setPrediction({
@@ -154,6 +173,7 @@ const Dashboard: React.FC = () => {
         prediction: result.prediction,
         rootCause: result.root_cause,
         recommendedIntervention: result.recommended_intervention,
+        multilingualNudge: result.multilingual_nudge || result.recommended_intervention,
         confidence: result.confidence,
         topFeatures: result.top_features.map((f: any) => ({
           feature: f.feature,
@@ -164,7 +184,6 @@ const Dashboard: React.FC = () => {
     } catch (err) {
       console.warn("Failed to fetch live API prediction, executing mathematical fallback...");
       
-      // Fallback calculator to ensure UI is robust and always functional
       const mockProb = Math.min(0.98, Math.max(0.05, 0.35 + (tabSwitchCount * 0.12) + (hesitationScore * 0.08) - (trustScore * 0.2)));
       const mockCause = mockProb >= 0.70 ? "Price Sensitive" : mockProb >= 0.45 ? "Hesitation / Doubt" : "None";
       const mockIntervention = mockProb >= 0.70
@@ -178,6 +197,7 @@ const Dashboard: React.FC = () => {
         prediction: mockProb >= 0.50,
         rootCause: mockCause,
         recommendedIntervention: mockIntervention,
+        multilingualNudge: translateNudge(mockIntervention, language),
         confidence: 0.85 - (mockProb * 0.2),
         topFeatures: [
           { feature: "hesitation_score", importance: hesitationScore * 0.5, direction: "increases_abandonment" },
@@ -191,25 +211,10 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Run pipeline whenever cart changes or active pages trigger events
+  // Run pipeline whenever cart, events, or target language selection changes
   useEffect(() => {
     runPredictionPipeline();
-  }, [cart.length, events.length]);
-
-  // Chronological summary calculations
-  const summaryMetrics = useMemo(() => {
-    const totalTabSwitches = events.filter(e => e.eventType === 'TAB_SWITCH').length;
-    const totalIdleToggles = events.filter(e => e.eventType === 'IDLE').length;
-    const totalSpecViews = events.filter(e => e.eventType === 'VIEW_SPECIFICATIONS').length;
-    const totalReviewViews = events.filter(e => e.eventType === 'VIEW_REVIEWS').length;
-
-    return {
-      tabSwitches: totalTabSwitches,
-      idleTriggers: totalIdleToggles,
-      specLookups: totalSpecViews,
-      reviewLookups: totalReviewViews
-    };
-  }, [events]);
+  }, [cart.length, events.length, language]);
 
   // Color mappings
   const getRiskColor = (prob: number) => {
@@ -219,20 +224,15 @@ const Dashboard: React.FC = () => {
   };
 
   const getRiskText = (prob: number) => {
-    if (prob >= 0.70) return 'HIGH RISK';
-    if (prob >= 0.40) return 'MEDIUM RISK';
-    return 'LOW RISK';
+    if (prob >= 0.70) return 'HIGH ABANDONMENT RISK';
+    if (prob >= 0.40) return 'MODERATE FRICTION RISK';
+    return 'LOW CONVERSION RISK';
   };
 
-  // Helper for matching intervention type to lucide icon
-  const getInterventionIcon = (interventionText: string) => {
-    const text = interventionText.toLowerCase();
-    if (text.includes('delivery') || text.includes('shipping') || text.includes('truck')) return <Truck size={20} className="text-[#F8CB2E]" />;
-    if (text.includes('price') || text.includes('coupon') || text.includes('discount')) return <TrendingDown size={20} className="text-[#F8CB2E]" />;
-    if (text.includes('compare') || text.includes('specification')) return <Layers size={20} className="text-[#F8CB2E]" />;
-    if (text.includes('emi') || text.includes('payment') || text.includes('credit')) return <CreditCard size={20} className="text-[#F8CB2E]" />;
-    if (text.includes('review') || text.includes('star') || text.includes('rating')) return <Star size={20} className="text-[#F8CB2E]" />;
-    if (text.includes('wishlist') || text.includes('save')) return <Heart size={20} className="text-[#F8CB2E]" />;
+  const getInterventionIcon = (text: string) => {
+    if (text.includes('shipping') || text.includes('delivery')) return <Truck size={20} className="text-[#F8CB2E]" />;
+    if (text.includes('discount') || text.includes('coupon') || text.includes('EMI')) return <CreditCard size={20} className="text-[#F8CB2E]" />;
+    if (text.includes('review') || text.includes('assurance')) return <Star size={20} className="text-[#F8CB2E]" />;
     if (text.includes('similar') || text.includes('alternative')) return <Shuffle size={20} className="text-[#F8CB2E]" />;
     return <Clock size={20} className="text-[#F8CB2E]" />;
   };
@@ -330,18 +330,18 @@ const Dashboard: React.FC = () => {
       ) : isLoading && !prediction ? (
         <Loader />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
           {/* ───────────────────────────────────────────────────────── */}
-          {/* ZONE 2: SESSION FEED & LIVE JOURNEY RAIL (Left Column) */}
+          {/* LEFT COLUMN (Session Feed, Journey Stream & KPI Cards — 4 Cols) */}
           {/* ───────────────────────────────────────────────────────── */}
           <motion.div 
-            initial={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, x: -15 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
             className="lg:col-span-4 flex flex-col gap-6"
           >
-            {/* Active Session Card Feed */}
+            {/* Active Session Overview Card */}
             <div className="glass rounded-xl p-4 border border-white/10 flex flex-col gap-4">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <span className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
@@ -353,7 +353,6 @@ const Dashboard: React.FC = () => {
                 </span>
               </div>
 
-              {/* Session Overview Card */}
               {prediction && (
                 <motion.div 
                   whileHover={{ y: -2 }}
@@ -412,29 +411,9 @@ const Dashboard: React.FC = () => {
                   </div>
                 </motion.div>
               )}
-
-              {/* Behavior Metrics Summary */}
-              <div className="grid grid-cols-2 gap-3 mt-1 font-mono text-xs">
-                <div className="bg-[#0d1220] p-3 rounded-lg border border-white/5 flex flex-col gap-1">
-                  <span className="text-[10px] text-slate-400 uppercase">Tab Switches</span>
-                  <span className="text-lg font-bold text-white">{summaryMetrics.tabSwitches}</span>
-                </div>
-                <div className="bg-[#0d1220] p-3 rounded-lg border border-white/5 flex flex-col gap-1">
-                  <span className="text-[10px] text-slate-400 uppercase">Hesitations</span>
-                  <span className="text-lg font-bold text-white">{summaryMetrics.idleTriggers}</span>
-                </div>
-                <div className="bg-[#0d1220] p-3 rounded-lg border border-white/5 flex flex-col gap-1">
-                  <span className="text-[10px] text-slate-400 uppercase">Specs Checked</span>
-                  <span className="text-lg font-bold text-white">{summaryMetrics.specLookups}</span>
-                </div>
-                <div className="bg-[#0d1220] p-3 rounded-lg border border-white/5 flex flex-col gap-1">
-                  <span className="text-[10px] text-slate-400 uppercase">Reviews Read</span>
-                  <span className="text-lg font-bold text-white">{summaryMetrics.reviewLookups}</span>
-                </div>
-              </div>
             </div>
 
-            {/* Chronological Journey Log */}
+            {/* Real-time Chronological Journey Log */}
             <div className="glass rounded-xl p-4 border border-white/10 flex flex-col gap-3">
               <span className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
@@ -444,7 +423,7 @@ const Dashboard: React.FC = () => {
                 <span className="text-[10px] text-slate-400 font-mono">({events.length} events)</span>
               </span>
 
-              <div className="flex flex-col gap-2.5 max-h-80 overflow-y-auto pr-1">
+              <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto pr-1">
                 {events.length > 0 ? (
                   events.map((evt, idx) => (
                     <motion.div 
@@ -468,13 +447,101 @@ const Dashboard: React.FC = () => {
                 )}
               </div>
             </div>
+
+            {/* 4 KPI CARDS FITTED INSIDE LEFT COLUMN (Filling empty space perfectly!) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Tile 1: Sessions at Risk */}
+              <div className="glass rounded-xl p-3.5 border border-white/10 relative overflow-hidden flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider">Sessions at Risk</span>
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                </div>
+                <div className="my-1.5">
+                  <div className="text-2xl font-mono font-black text-rose-500">
+                    <CountUpComponent end={247} duration={2} />
+                  </div>
+                  <span className="text-[9px] font-mono text-slate-500">High priority monitoring</span>
+                </div>
+                <div className="h-5 w-full opacity-30">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={sparklineData}>
+                      <Area type="monotone" dataKey="v" stroke="#ef4444" fill="#ef4444" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Tile 2: Interventions Deployed */}
+              <div className="glass rounded-xl p-3.5 border border-white/10 relative overflow-hidden flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider">Interventions Sent</span>
+                  <span className="w-2 h-2 rounded-full bg-[#F8CB2E]" />
+                </div>
+                <div className="my-1.5">
+                  <div className="text-2xl font-mono font-black text-[#F8CB2E]">
+                    <CountUpComponent end={1083} separator="," duration={2} />
+                  </div>
+                  <span className="text-[9px] font-mono text-slate-500">Automated RAG deployments</span>
+                </div>
+                <div className="h-5 w-full opacity-30">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={sparklineData}>
+                      <Area type="monotone" dataKey="v" stroke="#F8CB2E" fill="#F8CB2E" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Tile 3: Conversion Uplift */}
+              <div className="glass rounded-xl p-3.5 border border-white/10 relative overflow-hidden flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider">Conversion Uplift</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                </div>
+                <div className="my-1.5">
+                  <div className="text-2xl font-mono font-black text-emerald-400">
+                    +<CountUpComponent end={18.4} decimals={1} duration={2} />%
+                  </div>
+                  <span className="text-[9px] font-mono text-slate-500">Post-intervention recovery</span>
+                </div>
+                <div className="h-5 w-full opacity-30">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={sparklineData}>
+                      <Area type="monotone" dataKey="v" stroke="#10b981" fill="#10b981" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Tile 4: Margin Protected */}
+              <div className="glass rounded-xl p-3.5 border border-white/10 relative overflow-hidden flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider">Margin Protected</span>
+                  <span className="w-2 h-2 rounded-full bg-[#34d399]" />
+                </div>
+                <div className="my-1.5">
+                  <div className="text-2xl font-mono font-black text-[#34d399]">
+                    ₹<CountUpComponent end={2.1} decimals={1} duration={2} />L
+                  </div>
+                  <span className="text-[9px] font-mono text-slate-500">Revenue recovered today</span>
+                </div>
+                <div className="h-5 w-full opacity-30">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={sparklineData}>
+                      <Area type="monotone" dataKey="v" stroke="#34d399" fill="#34d399" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
           </motion.div>
 
           {/* ───────────────────────────────────────────────────────── */}
-          {/* ZONE 3: ACTIVE SESSION DETAIL PANEL (Center / Right Columns) */}
+          {/* RIGHT COLUMN (AI Core, SHAP & Strategy Analytics — 8 Cols) */}
           {/* ───────────────────────────────────────────────────────── */}
           <motion.div 
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 15 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
             className="lg:col-span-8 flex flex-col gap-6"
@@ -484,21 +551,21 @@ const Dashboard: React.FC = () => {
               
               {/* ① Abandonment Probability Ring */}
               {prediction && (
-                <Card variant="glow" className="md:col-span-5 flex flex-col items-center justify-center p-6 text-center gap-4 relative overflow-hidden">
+                <Card variant="glow" className="md:col-span-5 flex flex-col items-center justify-center p-5 text-center gap-3 relative overflow-hidden">
                   <div className="text-xs font-mono font-bold text-slate-400 uppercase tracking-widest self-start">
                     ABANDONMENT PROBABILITY
                   </div>
 
-                  <div className="relative w-44 h-44 flex items-center justify-center my-1">
+                  <div className="relative w-40 h-40 flex items-center justify-center my-1">
                     <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="40" fill="transparent" stroke="rgba(255,255,255,0.04)" strokeWidth="9" />
+                      <circle cx="50" cy="50" r="40" fill="transparent" stroke="rgba(255,255,255,0.04)" strokeWidth="8" />
                       <motion.circle
                         cx="50"
                         cy="50"
                         r="40"
                         fill="transparent"
                         stroke={getRiskColor(prediction.abandonmentProbability)}
-                        strokeWidth="9"
+                        strokeWidth="8"
                         strokeDasharray={251.2}
                         initial={{ strokeDashoffset: 251.2 }}
                         animate={{ strokeDashoffset: 251.2 * (1 - prediction.abandonmentProbability) }}
@@ -511,19 +578,24 @@ const Dashboard: React.FC = () => {
                       <span className="text-4xl font-mono font-black text-white tracking-tight">
                         <CountUpComponent end={Math.round(prediction.abandonmentProbability * 100)} duration={1.2} />%
                       </span>
-                      <span 
-                        className="text-[10px] font-mono font-extrabold uppercase tracking-widest mt-1 px-2 py-0.5 rounded"
-                        style={{ 
-                          color: getRiskColor(prediction.abandonmentProbability),
-                          backgroundColor: `${getRiskColor(prediction.abandonmentProbability)}20`
-                        }}
-                      >
-                        {getRiskText(prediction.abandonmentProbability)}
+                      <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mt-0.5">
+                        Risk Score
                       </span>
                     </div>
                   </div>
 
-                  <div className={`w-full py-2.5 rounded-lg font-mono text-xs font-bold border flex items-center justify-center gap-2 ${
+                  <span 
+                    className="px-3 py-1 rounded-md text-[10px] font-mono font-extrabold uppercase tracking-widest shadow-sm text-center w-full"
+                    style={{ 
+                      color: getRiskColor(prediction.abandonmentProbability),
+                      backgroundColor: `${getRiskColor(prediction.abandonmentProbability)}15`,
+                      border: `1px solid ${getRiskColor(prediction.abandonmentProbability)}30`
+                    }}
+                  >
+                    {getRiskText(prediction.abandonmentProbability)}
+                  </span>
+
+                  <div className={`w-full py-2 rounded-lg font-mono text-[11px] font-bold border flex items-center justify-center gap-2 ${
                     prediction.prediction
                       ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
                       : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
@@ -536,137 +608,61 @@ const Dashboard: React.FC = () => {
                     ) : (
                       <>
                         <CheckCircle2 size={14} />
-                        <span>PREDICTED: LIKELY TO PURCHASE</span>
+                        <span>PREDICTED: SAFE TO CONVERT</span>
                       </>
                     )}
                   </div>
                 </Card>
               )}
 
-              {/* Root Cause & Decision Confidence */}
-              {prediction && (
-                <div className="md:col-span-7 flex flex-col gap-6">
-                  
-                  {/* ③ Root Cause Diagnosis */}
-                  <Card className="flex flex-col gap-3">
-                    <span className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-widest">
-                      ROOT CAUSE DIAGNOSIS
+              {/* ② Agentic AI Reasoning Pipeline Cards */}
+              <div className="md:col-span-7 flex flex-col gap-4">
+                {/* Root Cause Inference Agent Card */}
+                <Card className="flex flex-col gap-2 relative overflow-hidden border-l-4 border-l-purple-500">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                    <span className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Brain size={16} className="text-purple-400" />
+                      <span>Root Cause Reasoning Agent</span>
                     </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold font-ui text-[#F8CB2E] bg-[#F8CB2E]/10 border border-[#F8CB2E]/30 px-3 py-1 rounded-lg">
-                        {prediction.rootCause}
-                      </span>
-                    </div>
-                    <div className="text-xs font-mono text-slate-400 leading-relaxed mt-1">
-                      Supporting Evidence Signals:
-                      <ul className="mt-1.5 space-y-1 text-slate-300">
-                        <li className="flex items-center gap-1.5">• Repeated browser tab switching & idle hesitations logged</li>
-                        <li className="flex items-center gap-1.5">• High price sensitivity score calculated from checkout history</li>
-                        <li className="flex items-center gap-1.5">• Multi-agent root cause agent pattern match verified</li>
-                      </ul>
-                    </div>
-                  </Card>
+                    <Badge variant="purple">Layer 4 Engine</Badge>
+                  </div>
 
-                  {/* ⑤ Confidence Score */}
-                  <Card className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between font-mono">
-                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">DECISION CONFIDENCE</span>
-                      <span className="text-sm font-extrabold text-white">
-                        <CountUpComponent end={Math.round(prediction.confidence * 100)} duration={1.2} />%
-                      </span>
-                    </div>
-                    <div className="w-full h-2.5 rounded-full bg-slate-900 overflow-hidden border border-white/5">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${prediction.confidence * 100}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="h-full rounded-full"
-                        style={{
-                          backgroundColor: prediction.confidence >= 0.80 ? '#10b981' : prediction.confidence >= 0.60 ? '#f59e0b' : '#ef4444'
-                        }}
-                      />
-                    </div>
-                    <p className="text-[10px] font-mono text-slate-500">
-                      Calculated from SHAP density vectors, classification tree variance, and RAG semantic similarity score.
+                  <div className="my-1">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase">Primary Inferred Cause</span>
+                    <h3 className="text-lg font-bold text-white font-ui tracking-tight mt-0.5">
+                      {prediction ? prediction.rootCause : 'Analyzing Session...'}
+                    </h3>
+                    <p className="text-xs text-slate-400 font-mono mt-1">
+                      Isolated via local SHAP attributions and behavioral friction heuristics.
                     </p>
-                  </Card>
-                </div>
-              )}
+                  </div>
+                </Card>
+
+                {/* RAG Strategy Retrieval Indicator Card */}
+                <Card className="flex flex-col gap-2 relative overflow-hidden border-l-4 border-l-emerald-500">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                    <span className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Layers size={16} className="text-emerald-400" />
+                      <span>RAG Retrieval Vector Search</span>
+                    </span>
+                    <Badge variant="success">ChromaDB Active</Badge>
+                  </div>
+
+                  <div className="my-1">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase">Strategy Candidate Match</span>
+                    <p className="text-xs font-mono text-slate-300 mt-1 leading-relaxed">
+                      Retrieved strategy vector matched root cause <strong>'{prediction?.rootCause}'</strong> with cost-optimized margin compliance.
+                    </p>
+                  </div>
+                </Card>
+              </div>
+
             </div>
 
-            {/* ② Agent Reasoning Trail */}
+            {/* Recommended RAG Intervention Action Card */}
             {prediction && (
-              <Card className="flex flex-col gap-4">
+              <Card variant="glow" className="flex flex-col gap-4 border-l-4 border-l-[#F8CB2E]">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <span className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                    <Brain size={16} className="text-[#a78bfa]" />
-                    <span>Agent Reasoning Trail</span>
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-400">Sequential Multi-Agent Execution</span>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  {/* Row 1: Feature Agent */}
-                  <motion.div 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.1 }}
-                    className="p-3.5 rounded-lg bg-[#0d1220] border-l-4 border-l-[#60a5fa] border border-white/5 flex flex-col gap-1 text-xs"
-                  >
-                    <div className="flex items-center gap-2 font-mono">
-                      <span className="text-[#60a5fa] font-extrabold text-[11px] bg-[#60a5fa]/10 px-2 py-0.5 rounded border border-[#60a5fa]/30">
-                        [FEATURE AGENT]
-                      </span>
-                      <span className="text-slate-300 font-semibold">Real-time Telemetry & Session Feature Signal Extraction</span>
-                    </div>
-                    <p className="text-slate-400 font-mono text-[11px] mt-1 pl-1">
-                      Signals Extracted: {summaryMetrics.tabSwitches} tab switches · {summaryMetrics.idleTriggers} idle triggers · {summaryMetrics.specLookups} spec lookups · Cart Value: ₹{cartTotalValue.toLocaleString('en-IN')}
-                    </p>
-                  </motion.div>
-
-                  {/* Row 2: Reasoning Agent */}
-                  <motion.div 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.25 }}
-                    className="p-3.5 rounded-lg bg-[#0d1220] border-l-4 border-l-[#a78bfa] border border-white/5 flex flex-col gap-1 text-xs"
-                  >
-                    <div className="flex items-center gap-2 font-mono">
-                      <span className="text-[#a78bfa] font-extrabold text-[11px] bg-[#a78bfa]/10 px-2 py-0.5 rounded border border-[#a78bfa]/30">
-                        [REASONING AGENT]
-                      </span>
-                      <span className="text-slate-300 font-semibold">Obstacle Diagnosis & Root Cause Classification</span>
-                    </div>
-                    <p className="text-slate-400 font-mono text-[11px] mt-1 pl-1">
-                      Inference: Session exhibits high hesitation pattern. Pattern matches <strong className="text-white">{prediction.rootCause}</strong> with {Math.round(prediction.confidence * 100)}% certainty.
-                    </p>
-                  </motion.div>
-
-                  {/* Row 3: Recommendation Agent */}
-                  <motion.div 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.4 }}
-                    className="p-3.5 rounded-lg bg-[#0d1220] border-l-4 border-l-[#34d399] border border-white/5 flex flex-col gap-1 text-xs"
-                  >
-                    <div className="flex items-center gap-2 font-mono">
-                      <span className="text-[#34d399] font-extrabold text-[11px] bg-[#34d399]/10 px-2 py-0.5 rounded border border-[#34d399]/30">
-                        [RECOMMENDATION AGENT]
-                      </span>
-                      <span className="text-slate-300 font-semibold">ChromaDB RAG Retrieval & Tailored Action Synthesizer</span>
-                    </div>
-                    <p className="text-slate-400 font-mono text-[11px] mt-1 pl-1">
-                      Action Matched: RAG vector document query retrieved optimal intervention strategy for {prediction.rootCause}.
-                    </p>
-                  </motion.div>
-                </div>
-              </Card>
-            )}
-
-            {/* ④ Recommended Intervention Card */}
-            {prediction && (
-              <Card className="border-l-4 border-l-[#F8CB2E] bg-[#0d1220] border border-white/10 p-6 flex flex-col gap-4 relative overflow-hidden">
-                <div className="flex items-center justify-between">
                   <span className="text-xs font-mono font-bold text-[#F8CB2E] uppercase tracking-widest flex items-center gap-2">
                     <Sparkles size={16} />
                     <span>RECOMMENDED RAG INTERVENTION ACTION</span>
@@ -680,13 +676,27 @@ const Dashboard: React.FC = () => {
                   <div className="p-3 rounded-xl bg-[#F8CB2E]/10 border border-[#F8CB2E]/30 shrink-0">
                     {getInterventionIcon(prediction.recommendedIntervention)}
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h4 className="text-base sm:text-lg font-bold text-white font-ui leading-snug">
                       {prediction.recommendedIntervention}
                     </h4>
                     <p className="text-xs font-mono text-slate-400 mt-1">
                       Optimized for instant conversion recovery before user leaves checkout funnel.
                     </p>
+
+                    {language !== 'English' && (
+                      <div className="mt-3 p-3 rounded-lg bg-slate-900/90 border border-[#F8CB2E]/40 text-[#F8CB2E] font-mono text-xs leading-relaxed flex flex-col gap-1 shadow-inner">
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 border-b border-white/10 pb-1">
+                          <span className="flex items-center gap-1.5 font-bold text-[#F8CB2E]">
+                            <Globe size={13} /> {language} Multilingual Nudge
+                          </span>
+                          <span className="text-[9px] bg-[#F8CB2E]/20 text-[#F8CB2E] px-1.5 py-0.5 rounded font-semibold uppercase">Real-time Translation</span>
+                        </div>
+                        <p className="font-semibold text-white mt-1 text-sm">
+                          "{translateNudge(prediction.multilingualNudge || prediction.recommendedIntervention, language)}"
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -713,7 +723,7 @@ const Dashboard: React.FC = () => {
               </Card>
             )}
 
-            {/* Local SHAP Feature Attributions Bar Chart */}
+            {/* Explainable AI: Local SHAP Feature Attributions Bar Chart */}
             {prediction && (
               <Card className="flex flex-col gap-4">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
@@ -724,21 +734,21 @@ const Dashboard: React.FC = () => {
                   <span className="text-[10px] font-mono text-slate-400">TreeSHAP Engine</span>
                 </div>
 
-                <div className="h-56 w-full text-xs font-mono">
+                <div className="h-64 w-full text-xs font-mono">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={prediction.topFeatures}
+                      data={shapChartData}
                       layout="vertical"
-                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                      margin={{ top: 5, right: 30, left: 35, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
                       <XAxis type="number" stroke="#64748b" />
-                      <YAxis dataKey="feature" type="category" stroke="#94a3b8" width={140} tick={{ fontSize: 11 }} />
+                      <YAxis dataKey="displayName" type="category" stroke="#94a3b8" width={175} tick={{ fontSize: 11 }} />
                       <Tooltip
                         contentStyle={{ backgroundColor: '#0d1220', borderColor: 'rgba(255,255,255,0.1)', color: '#f8fafc', borderRadius: '8px' }}
                       />
                       <Bar dataKey="importance" radius={[0, 4, 4, 0]}>
-                        {prediction.topFeatures.map((entry, idx) => (
+                        {shapChartData.map((entry, idx) => (
                           <Cell
                             key={`cell-${idx}`}
                             fill={entry.importance > 0 ? '#ef4444' : '#10b981'}
@@ -817,101 +827,6 @@ const Dashboard: React.FC = () => {
                 </div>
               </Card>
 
-            </div>
-
-          </motion.div>
-
-          {/* ───────────────────────────────────────────────────────── */}
-          {/* ZONE 4: METRICS BAR (Bottom KPI Strip) */}
-          {/* ───────────────────────────────────────────────────────── */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="lg:col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2"
-          >
-            {/* Tile 1: Sessions at Risk */}
-            <div className="glass rounded-xl p-5 border border-white/10 relative overflow-hidden flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider">Sessions at Risk</span>
-                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-              </div>
-              <div className="my-2">
-                <div className="text-3xl font-mono font-black text-rose-500">
-                  <CountUpComponent end={247} duration={2} />
-                </div>
-                <span className="text-[10px] font-mono text-slate-500">High priority monitoring</span>
-              </div>
-              <div className="h-8 w-full opacity-30">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={sparklineData}>
-                    <Area type="monotone" dataKey="v" stroke="#ef4444" fill="#ef4444" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Tile 2: Interventions Deployed */}
-            <div className="glass rounded-xl p-5 border border-white/10 relative overflow-hidden flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider">Interventions Sent</span>
-                <span className="w-2 h-2 rounded-full bg-[#F8CB2E]" />
-              </div>
-              <div className="my-2">
-                <div className="text-3xl font-mono font-black text-[#F8CB2E]">
-                  <CountUpComponent end={1083} separator="," duration={2} />
-                </div>
-                <span className="text-[10px] font-mono text-slate-500">Automated RAG deployments</span>
-              </div>
-              <div className="h-8 w-full opacity-30">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={sparklineData}>
-                    <Area type="monotone" dataKey="v" stroke="#F8CB2E" fill="#F8CB2E" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Tile 3: Conversion Uplift */}
-            <div className="glass rounded-xl p-5 border border-white/10 relative overflow-hidden flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider">Conversion Uplift</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              </div>
-              <div className="my-2">
-                <div className="text-3xl font-mono font-black text-emerald-400">
-                  +<CountUpComponent end={18.4} decimals={1} duration={2} />%
-                </div>
-                <span className="text-[10px] font-mono text-slate-500">Post-intervention recovery</span>
-              </div>
-              <div className="h-8 w-full opacity-30">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={sparklineData}>
-                    <Area type="monotone" dataKey="v" stroke="#10b981" fill="#10b981" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Tile 4: Margin Saved */}
-            <div className="glass rounded-xl p-5 border border-white/10 relative overflow-hidden flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider">Margin Protected</span>
-                <span className="w-2 h-2 rounded-full bg-[#34d399]" />
-              </div>
-              <div className="my-2">
-                <div className="text-3xl font-mono font-black text-[#34d399]">
-                  ₹<CountUpComponent end={2.1} decimals={1} duration={2} />L
-                </div>
-                <span className="text-[10px] font-mono text-slate-500">Revenue recovered today</span>
-              </div>
-              <div className="h-8 w-full opacity-30">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={sparklineData}>
-                    <Area type="monotone" dataKey="v" stroke="#34d399" fill="#34d399" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
             </div>
 
           </motion.div>
