@@ -43,7 +43,7 @@ const Navbar: React.FC = () => {
 
       {/* Center: Live Session Monitoring Indicator */}
       <div className="hidden lg:flex items-center gap-2 bg-[#0d1220] border border-white/10 px-3 py-1 rounded-full text-xs font-mono">
-        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-dot shadow-[0_0_8px_#10b981]" />
+        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#10b981]" />
         <span className="text-emerald-400 font-semibold">LIVE</span>
         <span className="text-slate-500">|</span>
         <span className="text-slate-300">{t("Monitoring Active Shopping Sessions", language)}</span>

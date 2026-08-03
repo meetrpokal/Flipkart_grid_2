@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Sparkles, Cpu, TrendingUp, BrainCircuit, BookOpen, Layers, ShieldCheck, 
-  ArrowRight, CheckCircle2, ChevronRight, BarChart3, Activity, Zap, Search, 
-  Globe, User, Award, ExternalLink, Share2, MessageSquare, 
-  X, Play, AlertCircle, RefreshCw, Compass
+  Cpu, TrendingUp, BrainCircuit, BookOpen, Layers, ShieldCheck, 
+  ArrowRight, CheckCircle2, ChevronRight, BarChart3, Zap, 
+  Globe, User, ExternalLink, Share2, MessageSquare, 
+  X, Play, RefreshCw
 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
@@ -453,7 +453,7 @@ const InteractiveIndiaHeatmap: React.FC<{ onReskillClick: () => void }> = ({ onR
 // ─────────────────────────────────────────────────────────────────────────────
 const SkillsMirageLanding: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'risk' | 'trends' | 'gap'>('risk');
-  const [selectedRole, setSelectedRole] = useState('Data Architect');
+  const selectedRole = 'Data Architect';
   const [isAnalyzerOpen, setIsAnalyzerOpen] = useState(false);
   const [userRoleInput, setUserRoleInput] = useState('');
   const [userExpInput, setUserExpInput] = useState('5 Years');
@@ -700,6 +700,7 @@ const SkillsMirageLanding: React.FC = () => {
             </motion.div>
           ))}
 
+        </div>
       </section>
 
       {/* ─────────────────────────────────────────────────────────────────── */}
@@ -1151,7 +1152,7 @@ const SkillsMirageLanding: React.FC = () => {
           <div>© 2026 Skills Mirage AI Inc. All rights reserved.</div>
           <div className="flex items-center gap-6">
             <a href="#" className="hover:text-slate-300 transition-colors" title="Global Network"><Globe size={16} /></a>
-            <a href="#" className="hover:text-slate-300 transition-colors" title-[#06b6d4]><Share2 size={16} /></a>
+            <a href="#" className="hover:text-slate-300 transition-colors" title="Share"><Share2 size={16} /></a>
             <a href="#" className="hover:text-slate-300 transition-colors" title="Community"><MessageSquare size={16} /></a>
             <a href="#" className="hover:text-slate-300 transition-colors" title="External Link"><ExternalLink size={16} /></a>
           </div>

@@ -7,11 +7,13 @@
 @import '@fontsource/jetbrains-mono/600.css';
 
 :root {
-  /* ── Core Palette ── */
-  --color-bg:           #030712;
-  --color-[#ff3d5a]:     #ff3d5a;
-  --color-[#8b5cf6]:  #8b5cf6;
-  --color-[#06b6d4]:    #06b6d4;
+  /* ── Flipkart GRiD 8.0 Core Palette ── */
+  --color-bg:           #090B14;
+  --color-surface:      #111827;
+  --color-primary:      #2874F0;
+  --color-secondary:    #FFD400;
+  --color-success:      #00E676;
+  --color-danger:       #FF4D4F;
   --font-ui:    'Space Grotesk', sans-serif;
   --font-mono:  'JetBrains Mono', monospace;
 }
@@ -22,7 +24,7 @@
 
 body {
   font-family: var(--font-ui);
-  background: #030712;
+  background: #090B14;
   color: #f3f4f6;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;

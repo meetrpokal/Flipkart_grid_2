@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, LineChart, Line, AreaChart, Area, CartesianGrid } from 'recharts';
-import { Sparkles, Clock, User, HelpCircle, Activity, Brain, Zap, Truck, TrendingDown, Layers, CreditCard, Star, Heart, Shuffle, BarChart3, CheckCircle2, AlertTriangle, Globe } from 'lucide-react';
+import { Sparkles, Clock, User, HelpCircle, Activity, Brain, Zap, Truck, Layers, CreditCard, Star, Shuffle, BarChart3, CheckCircle2, AlertTriangle, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { apiService } from '../services/api';
@@ -624,7 +624,7 @@ const Dashboard: React.FC = () => {
                       <Brain size={16} className="text-purple-400" />
                       <span>Root Cause Reasoning Agent</span>
                     </span>
-                    <Badge variant="purple">Layer 4 Engine</Badge>
+                    <Badge variant="info">Layer 4 Engine</Badge>
                   </div>
 
                   <div className="my-1">

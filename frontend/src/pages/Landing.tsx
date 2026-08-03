@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, BarChart2, ShieldAlert, Cpu, Database, Award, ArrowRight, Compass, Navigation, RefreshCw, Layers } from 'lucide-react';
+import { Sparkles, BarChart2, ShieldAlert, Cpu, Database, Award, ArrowRight, Navigation } from 'lucide-react';
 import { Button, Card } from '../components/DesignSystem';
 import { useStore } from '../store/useStore';
 import { t } from '../utils/multilingual';
