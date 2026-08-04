@@ -67,14 +67,4 @@ For the full, detailed technical architecture, 200-feature schema breakdown, 7-l
 | **D** | **Full Multi-Agent Pipeline** | **29.4%** | **94.2%** | **+41.8%** | **₹5.4M** |
 
 ---
-
-## 🤖 Co-Engineered with Antigravity AI
-
-This platform was built in pair-programming collaboration with **Antigravity**, an advanced agentic AI coding assistant from Google DeepMind.
-
-* **Architecture Co-Design**: Autonomous multi-agent pipeline design, SHAP TreeExplainer integration, and ChromaDB vector retrieval.
-* **Serverless Production Engineering**: Optimized FastAPI entrypoints, lazy dependency injection, and Vercel serverless build orchestration.
-* **Full-Stack Implementation**: Real-time React dashboard with 3D interactive telemetry orb, multilingual nudge generators, and A/B statistical simulation suites.
-
----
-*Created for Flipkart Grid Platform | Powered by Antigravity Agentic AI.*
+*Created for Flipkart Grid Platform.*
