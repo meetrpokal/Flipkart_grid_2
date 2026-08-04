@@ -1,8 +1,8 @@
 import axios from 'axios';
 import type { LoggedEvent } from '../store/useStore';
 
-// The FastAPI backend runs on localhost:8000
-const API_BASE_URL = 'http://127.0.0.1:8000';
+// Dynamic API base URL: relative path in production deployment, localhost:8000 in local dev
+const API_BASE_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' ? '' : 'http://127.0.0.1:8000');
 
 const client = axios.create({
   baseURL: API_BASE_URL,

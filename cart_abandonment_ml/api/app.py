@@ -355,8 +355,9 @@ def startup_event() -> None:
 
 def get_pipeline() -> PipelineService:
     """Dependency injection helper."""
+    global _pipeline_service
     if _pipeline_service is None:
-        raise RuntimeError("PipelineService has not been started.")
+        _pipeline_service = PipelineService(default_config)
     return _pipeline_service
 
 

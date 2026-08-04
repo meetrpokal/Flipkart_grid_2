@@ -24,8 +24,10 @@ from pathlib import Path
 
 # Project configuration
 _PROJECT_ROOT = Path(__file__).resolve().parent
-sys.path.append(str(_PROJECT_ROOT))
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(_PROJECT_ROOT))
 
+from cart_abandonment_ml.api.app import app
 from cart_abandonment_ml.config.config import config
 
 logging.basicConfig(level=logging.INFO, format=config.LOG_FORMAT)
