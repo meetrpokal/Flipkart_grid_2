@@ -403,7 +403,7 @@ const Landing: React.FC = () => {
       {/* 4. FEATURES GRID */}
       <motion.section className="flex flex-col gap-8 text-left relative z-10" variants={itemVariants}>
         <h2 className="text-2xl md:text-3xl font-extrabold text-white text-center font-ui">System Core Features</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="flex flex-col gap-3">
             <div className="w-8 h-8 rounded bg-[#60a5fa]/10 text-[#60a5fa] border border-[#60a5fa]/30 flex items-center justify-center">
               <Cpu size={18} />
@@ -429,6 +429,15 @@ const Landing: React.FC = () => {
             <h4 className="font-bold text-base text-white font-ui">ChromaDB RAG Engine</h4>
             <p className="text-xs font-mono text-slate-400 leading-relaxed">
               Queries a 200-document vector knowledge base with metadata filters to match optimal intervention strategies.
+            </p>
+          </Card>
+          <Card className="flex flex-col gap-3 border-[#F8CB2E]/30 bg-[#F8CB2E]/5">
+            <div className="w-8 h-8 rounded bg-[#F8CB2E]/20 text-[#F8CB2E] border border-[#F8CB2E]/40 flex items-center justify-center">
+              <Sparkles size={18} />
+            </div>
+            <h4 className="font-bold text-base text-[#F8CB2E] font-ui">Antigravity Agentic AI</h4>
+            <p className="text-xs font-mono text-slate-300 leading-relaxed">
+              Co-engineered with Antigravity AI pair programming assistant for autonomous agent orchestration, SHAP reasoning, and Vercel serverless builds.
             </p>
           </Card>
         </div>

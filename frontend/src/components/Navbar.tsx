@@ -63,6 +63,9 @@ const Navbar: React.FC = () => {
           <span title="Recommendation Agent Active" className="flex items-center gap-1 text-slate-300">
             <span className="w-1.5 h-1.5 rounded-full bg-[#34d399] shadow-[0_0_6px_#34d399]" /> Recommend
           </span>
+          <span title="Antigravity Agentic AI Active" className="flex items-center gap-1 text-[#F8CB2E] font-bold">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#F8CB2E] shadow-[0_0_6px_#F8CB2E] animate-pulse" /> Antigravity AI
+          </span>
         </div>
 
         {/* Multilingual Recommendation Selector */}
