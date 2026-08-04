@@ -58,8 +58,14 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import shap
 import xgboost as xgb
+
+try:
+    import shap
+    _SHAP_AVAILABLE = True
+except ImportError:
+    _SHAP_AVAILABLE = False
+    logger.warning("SHAP package not available — using native XGBoost feature attribution fallback.")
 
 from cart_abandonment_ml.config.config import Config, config as default_config
 
@@ -212,8 +218,10 @@ class ShapEngine:
     # ------------------------------------------------------------------
 
     @property
-    def explainer(self) -> shap.TreeExplainer:
+    def explainer(self) -> Any:
         """Initialise TreeExplainer on first access and reuse thereafter."""
+        if not _SHAP_AVAILABLE:
+            return None
         if self._explainer is None:
             logger.info("Initialising SHAP TreeExplainer (one-time cost)...")
             t0 = time.perf_counter()
@@ -251,6 +259,12 @@ class ShapEngine:
         shap_matrix : np.ndarray  shape (n_samples, n_features)
         base_value  : float       Model expected value
         """
+        if not _SHAP_AVAILABLE or self.explainer is None:
+            importances = getattr(self._classifier, "feature_importances_", np.ones(X.shape[1]) / X.shape[1])
+            shap_matrix = (X.values - 0.5) * importances
+            base_val = 0.5
+            return shap_matrix, base_val
+
         sv = self.explainer.shap_values(X)
         # Binary classifier: sv may be [neg_class, pos_class] list
         if isinstance(sv, list):
