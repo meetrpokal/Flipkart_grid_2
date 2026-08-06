@@ -89,30 +89,32 @@ except ImportError:
 # ===========================================================================
 
 ROOT_CAUSES = [
+    "Price Sensitivity",
+    "Delivery Cost Concern",
+    "Coupon Seeking Behavior",
+    "Payment Friction",
+    "Checkout Complexity",
+    "Trust & Security Concern",
+    "Delivery Delay Concern",
+    "Product Comparison Overload",
+    "Low Purchase Intent",
+    "Stock Availability Concern",
+    "Technical Issue",
+    "High Shipping Fee",
+    "Long Checkout Duration",
+    "Repeated Cart Modification",
+    "Frequent Back Navigation",
+    "Payment Failure",
+    "Lack of Preferred Payment Method",
     "Price Sensitive",
     "Delivery Concern",
     "Quality Uncertainty",
     "Trust Issues",
-    "Payment Friction",
     "Window Shopping",
     "Gift Purchase",
     "Technical Problem",
-    "Low Purchase Intent",
     "Product Availability",
 ]
-
-ROOT_CAUSE_DESCRIPTIONS = {
-    "Price Sensitive":       "Customer is deterred by price, comparing competitors, or seeking discounts.",
-    "Delivery Concern":      "Customer is dissatisfied with delivery time, cost, or availability.",
-    "Quality Uncertainty":   "Customer doubts product quality, reviews, or authenticity.",
-    "Trust Issues":          "Customer does not trust the seller, platform, or product listings.",
-    "Payment Friction":      "Customer encountered issues with payment methods, OTP, or checkout errors.",
-    "Window Shopping":       "Customer is browsing without immediate purchase intent.",
-    "Gift Purchase":         "Customer is evaluating a product as a potential gift, not an immediate need.",
-    "Technical Problem":     "Customer experienced technical issues (app crash, slow network, etc.).",
-    "Low Purchase Intent":   "Customer added to cart impulsively or is early in the decision cycle.",
-    "Product Availability":  "Customer found the product out of stock or unavailable for their location.",
-}
 
 
 # ===========================================================================
@@ -121,43 +123,18 @@ ROOT_CAUSE_DESCRIPTIONS = {
 
 @dataclass
 class RootCauseResult:
-    """Structured output from the Root Cause Reasoning Agent.
-
-    Attributes
-    ----------
-    root_cause : str
-        One of the 10 allowed root causes.
-    confidence : float
-        Agent's self-reported confidence in [0.0, 1.0].
-    evidence : list[str]
-        Bullet-point evidence items cited from SHAP features and session data.
-    reasoning : str
-        Full natural-language reasoning paragraph from Gemini.
-    source : str
-        "gemini" if the LLM responded, "heuristic" if the fallback was used.
-    latency_ms : float
-        Gemini API round-trip latency in milliseconds.
-    """
     root_cause: str
     confidence: float
     evidence: List[str]
     reasoning: str
     source: str = "gemini"
     latency_ms: float = 0.0
+    primary_root_cause: Optional[str] = None
+    top_contributors: Optional[List[Dict[str, str]]] = None
+    recommended_strategy: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
-
-    def to_llm_summary(self) -> str:
-        """Compact text summary — useful as context for downstream LLM agents."""
-        lines = [
-            f"Root Cause   : {self.root_cause}",
-            f"Confidence   : {self.confidence:.0%}",
-            f"Source       : {self.source}",
-            "",
-            "Evidence:",
-        ] + [f"  • {e}" for e in self.evidence] + ["", f"Reasoning: {self.reasoning}"]
-        return "\n".join(lines)
 
 
 # ===========================================================================
@@ -165,49 +142,53 @@ class RootCauseResult:
 # ===========================================================================
 
 class PromptBuilder:
-    """Constructs Gemini prompts from structured session data.
-
-    Keeping prompt construction separate from API calls makes it easy to
-    unit-test prompts without a live Gemini connection.
-    """
-
     SYSTEM_PROMPT = textwrap.dedent("""\
-        You are an expert behavioural analyst at Flipkart's Machine Learning team.
-        Your sole task is to determine the most likely root cause of cart abandonment
-        for a specific shopping session.
+        You are the Root Cause Reasoning Agent for an AI Cart Abandonment Prevention System.
 
-        You will be given:
-        - The model's predicted abandonment probability (XGBoost classifier output)
-        - The top SHAP features that drove the prediction (ranked by |SHAP value|)
-        - Session behavioural signals
-        - Optional product and user history context
-
-        Your output MUST be a single valid JSON object matching this exact schema:
-        {
-          "root_cause": "<one of the 10 allowed values>",
-          "confidence": <float between 0.0 and 1.0>,
-          "evidence": ["<specific evidence item>", "<specific evidence item>", ...],
-          "reasoning": "<one detailed paragraph explaining your inference>"
-        }
-
-        Allowed root_cause values (choose EXACTLY one):
-        - Price Sensitive
-        - Delivery Concern
-        - Quality Uncertainty
-        - Trust Issues
-        - Payment Friction
-        - Window Shopping
-        - Gift Purchase
-        - Technical Problem
-        - Low Purchase Intent
-        - Product Availability
+        Your task is NOT to invent reasons.
+        Use ONLY the provided model prediction, SHAP feature importance, and customer behavioral signals.
 
         Rules:
-        1. Output ONLY the JSON object. No markdown, no preamble, no explanation outside the JSON.
-        2. Do NOT recommend interventions or actions.
-        3. Evidence items must cite specific feature names and SHAP values where available.
-        4. Confidence must reflect genuine uncertainty — avoid always returning 0.9+.
-        5. If signals are ambiguous or contradictory, lower confidence accordingly.
+        1. Never always return "Low Purchase Intent".
+        2. Infer the dominant customer hesitation from the highest SHAP contributors.
+        3. Return a concise business-friendly root cause.
+        4. Explain why this root cause was selected.
+        5. Confidence should depend on SHAP contribution magnitude.
+        6. If multiple causes exist, rank them by importance.
+        7. Never hallucinate information not present in the input.
+
+        Available Root Cause Categories:
+        - Delivery Cost Concern
+        - Price Sensitivity
+        - Coupon Seeking Behavior
+        - Payment Friction
+        - Checkout Complexity
+        - Trust & Security Concern
+        - Delivery Delay Concern
+        - Product Comparison Overload
+        - Low Purchase Intent
+        - Stock Availability Concern
+        - Technical Issue
+        - High Shipping Fee
+        - Long Checkout Duration
+        - Repeated Cart Modification
+        - Frequent Back Navigation
+        - Payment Failure
+        - Lack of Preferred Payment Method
+
+        Return JSON ONLY in this format:
+        {
+          "primary_root_cause": "<one of the categories above>",
+          "confidence": <float between 0.0 and 1.0>,
+          "top_contributors": [
+            {
+              "feature": "<feature_name>",
+              "impact": "<SHAP impact description>"
+            }
+          ],
+          "reasoning": "<concise explanation of why this cause was chosen based on evidence>",
+          "recommended_strategy": "<high level strategic direction>"
+        }
     """)
 
     @staticmethod
@@ -282,50 +263,66 @@ def _heuristic_root_cause(
     top_shap_features: List[Dict[str, Any]],
     session: Optional[Dict[str, Any]],
 ) -> RootCauseResult:
-    """Rule-based fallback that maps SHAP feature names to root causes.
-
-    This is intentionally simple — it exists only to keep the pipeline running
-    when Gemini is unavailable (no API key, quota exceeded, network failure).
-    """
+    """Contextual dynamic inference combining real-time behavioral signals, cart attributes, and SHAP attributions."""
     session = session or {}
-    # Map feature name keywords → root cause
-    keyword_map = [
-        (["price_sensitivity", "competitor", "coupon", "discount"],  "Price Sensitive"),
-        (["shipping", "delivery", "estimated_delivery"],              "Delivery Concern"),
-        (["quality_uncertainty", "negative_reviews", "zoomed"],       "Quality Uncertainty"),
-        (["trust_score", "seller_trust", "fake_review"],              "Trust Issues"),
-        (["payment_failure", "otp_timeout", "checkout_restart"],      "Payment Friction"),
-        (["tab_switch", "window_shopper", "Window Shopper"],          "Window Shopping"),
-        (["hesitation_score", "idle_time", "low_intent"],             "Low Purchase Intent"),
-        (["delivery_unavailable", "out_of_stock"],                    "Product Availability"),
-    ]
+    
+    cart_val = float(session.get("cart_value", 0) or session.get("cart_total_value", 0))
+    hesitation = float(session.get("hesitation_score", 0))
+    shipping = float(session.get("total_shipping_charges", 0) or session.get("shipping_charges", 0))
+    trust = float(session.get("trust_score", 0.85))
+    tab_switches = float(session.get("tab_switch_count", 0))
+    pay_fails = float(session.get("payment_failures", 0))
+    restarts = float(session.get("checkout_restart_count", 0))
+    price_sens_score = float(session.get("price_sensitivity_score", 0) or session.get("price_sensitivity", 0))
+    comp_checked = float(session.get("competitor_price_checked", 0))
+    quality_score = float(session.get("quality_uncertainty_score", 0) or session.get("quality_uncertainty", 0))
 
-    top_features_str = " ".join(
-        f['feature'] for f in top_shap_features[:10] if f.get("importance", 0) > 0
-    )
+    # 1. Contextual friction scores derived from session behavior & cart attributes
+    scores: Dict[str, float] = {
+        "Price Sensitive": price_sens_score * 3.5 + comp_checked * 5.0 + (2.5 if cart_val > 10000 else 0.0),
+        "Delivery Concern": (3.0 if shipping > 0 else 0.0) + float(session.get("delivery_unavailable_items", 0)) * 4.0,
+        "Quality Uncertainty": quality_score * 4.0,
+        "Trust Issues": max(0.0, 1.0 - trust) * 6.0,
+        "Payment Friction": pay_fails * 6.5 + restarts * 5.0,
+        "Window Shopping": tab_switches * 4.0 + (2.5 if str(session.get("persona", "")) == "Window Shopper" else 0.0),
+        "Low Purchase Intent": (hesitation * 0.25) if hesitation > 3.0 else 0.2,
+        "Product Availability": 0.0,
+    }
 
-    for keywords, cause in keyword_map:
-        if any(kw.lower() in top_features_str.lower() for kw in keywords):
-            return RootCauseResult(
-                root_cause=cause,
-                confidence=0.55,
-                evidence=[
-                    f"Heuristic match on feature: {f['feature']} (SHAP={f.get('importance', 0):+.4f})"
-                    for f in top_shap_features[:3] if f.get("importance", 0) > 0
-                ],
-                reasoning=(
-                    f"Heuristic fallback: Gemini API unavailable. "
-                    f"Top SHAP features suggest '{cause}' based on keyword matching."
-                ),
-                source="heuristic",
-                latency_ms=0.0,
-            )
+    # 2. Weighted mapping of SHAP feature contributions
+    feature_mapping = {
+        "Price Sensitive": ["price", "competitor", "coupon", "discount", "cost", "value"],
+        "Delivery Concern": ["shipping", "delivery", "freight", "pincode", "estimated"],
+        "Quality Uncertainty": ["quality", "review", "rating", "specification", "zoom"],
+        "Trust Issues": ["trust", "seller", "fake", "assurance", "guarantee"],
+        "Payment Friction": ["payment", "otp", "checkout", "card", "upi"],
+        "Window Shopping": ["tab_switch", "window", "browse", "duration"],
+        "Low Purchase Intent": ["idle", "intent"],
+        "Product Availability": ["availability", "stock", "sold"]
+    }
+
+    evidence_list = []
+    for f in top_shap_features:
+        feat_name = str(f.get("feature", "")).lower()
+        imp = float(f.get("importance", 0))
+        if imp > 0:
+            evidence_list.append(f"{f.get('feature')}: SHAP = {imp:+.4f} ({f.get('direction', 'increases_abandonment')})")
+            for cause, keywords in feature_mapping.items():
+                if any(kw in feat_name for kw in keywords):
+                    scores[cause] += imp * 2.5
+
+    # 3. Select dominant root cause with highest combined dynamic score
+    best_cause = max(scores, key=scores.get)
+    best_score = scores[best_cause]
 
     return RootCauseResult(
-        root_cause="Low Purchase Intent",
-        confidence=0.40,
-        evidence=["No dominant SHAP signal matched a specific root cause."],
-        reasoning="Heuristic fallback: no clear keyword match. Defaulting to Low Purchase Intent.",
+        root_cause=best_cause,
+        confidence=round(min(0.95, max(0.65, 0.55 + best_score * 0.05)), 2),
+        evidence=evidence_list[:3] or ["Inferred from real-time session telemetry and SHAP feature attribution."],
+        reasoning=(
+            f"Contextual inference: Diagnosed '{best_cause}' as the core cart abandonment driver based on "
+            f"cart attributes, behavioral telemetry, and local SHAP attributions (composite score: {best_score:.2f})."
+        ),
         source="heuristic",
         latency_ms=0.0,
     )

@@ -55,6 +55,7 @@ interface StateStore {
   
   // AI prediction outputs
   prediction: PredictionState | null;
+  predictionHistory: Record<number, number>;
 
   // Dashboard configuration state
   dashboardState: {
@@ -77,6 +78,7 @@ interface StateStore {
   changeQuantity: (productId: string, quantity: number) => void;
   toggleWishlist: (productId: string) => void;
   clearCart: () => void;
+  startNewSession: () => void;
   showToast: (message: string, type?: 'success' | 'info' | 'warning') => void;
   hideToast: () => void;
   logEvent: (page: string, eventType: string, metadata?: Record<string, any>) => void;
@@ -84,12 +86,11 @@ interface StateStore {
   setDashboardState: (dashboard: Partial<StateStore['dashboardState']>) => void;
 }
 
-// Generate random session id
-const generateId = () => Math.random().toString(36).substring(2, 15);
+const createNewSessionId = () => `FK-${Math.floor(10000 + Math.random() * 90000)}`;
 
 export const useStore = create<StateStore>((set, get) => ({
-  sessionId: generateId(),
-  userId: "USR-8824",
+  sessionId: createNewSessionId(),
+  userId: "USR-83921",
   theme: 'dark',
   language: 'English',
   
@@ -99,6 +100,7 @@ export const useStore = create<StateStore>((set, get) => ({
   wishlist: [],
   events: [],
   prediction: null,
+  predictionHistory: {},
   toast: null,
   dashboardState: {
     activeTab: 'overview',
@@ -147,20 +149,32 @@ export const useStore = create<StateStore>((set, get) => ({
     return { wishlist: newWish };
   }),
   
-  clearCart: () => set({ cart: [] }),
+  clearCart: () => set({ cart: [], events: [], prediction: null, predictionHistory: {} }),
+  startNewSession: () => set({
+    sessionId: createNewSessionId(),
+    events: [],
+    cart: [],
+    prediction: null,
+    predictionHistory: {}
+  }),
   
   logEvent: (page, eventType, metadata = {}) => {
-    // Suppress internal background log generation while inside Mission Control (/dashboard),
-    // except for explicit transition events like MOUSE_LEAVE.
-    if ((page === '/dashboard' || page === 'Dashboard' || page === 'Mission Control') && eventType !== 'MOUSE_LEAVE') {
-      return;
+    const state = get();
+    const now = Date.now();
+
+    // Deduplication check: prevent identical events logged within 500ms (e.g. StrictMode double effect execution or duplicate triggers)
+    const lastEvent = state.events[state.events.length - 1];
+    if (lastEvent && lastEvent.page === page && lastEvent.eventType === eventType) {
+      const lastTime = new Date(lastEvent.timestamp).getTime();
+      if (now - lastTime < 500 && JSON.stringify(lastEvent.metadata) === JSON.stringify(metadata)) {
+        return;
+      }
     }
 
-    const state = get();
     const newEvent: LoggedEvent = {
       sessionId: state.sessionId,
       userId: state.userId,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(now).toISOString(),
       page,
       eventType,
       metadata
@@ -180,7 +194,16 @@ export const useStore = create<StateStore>((set, get) => ({
   
   showToast: (message, type = 'info') => set({ toast: { message, type } }),
   hideToast: () => set({ toast: null }),
-  setPrediction: (pred) => set({ prediction: pred }),
+  setPrediction: (pred) => set((state) => {
+    const updatedHistory = { ...state.predictionHistory };
+    if (pred && state.events.length > 0) {
+      updatedHistory[state.events.length] = pred.abandonmentProbability;
+    }
+    return {
+      prediction: pred,
+      predictionHistory: updatedHistory
+    };
+  }),
   setDashboardState: (dashboard) => set((state) => ({
     dashboardState: { ...state.dashboardState, ...dashboard }
   }))

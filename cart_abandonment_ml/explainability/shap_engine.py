@@ -236,9 +236,12 @@ class ShapEngine:
     def _prepare_session(self, session: Dict[str, Any]) -> pd.DataFrame:
         """Align a raw session dict to the training feature space and scale it."""
         row = {feat: session.get(feat, np.nan) for feat in self._feature_names}
-        df = pd.DataFrame([row]).fillna(0.0)
+        df = pd.DataFrame([row])
+        # Scale features first — StandardScaler preserves NaNs
         scaled = self._scaler.transform(df[self._feature_names])
-        return pd.DataFrame(scaled, columns=self._feature_names)
+        # Post-scaling, fill NaNs with 0.0 (the neutral column mean)
+        scaled_df = pd.DataFrame(scaled, columns=self._feature_names)
+        return scaled_df.fillna(0.0)
 
     def _prepare_batch(self, df: pd.DataFrame) -> pd.DataFrame:
         """Apply the saved scaler to an already-aligned DataFrame."""
@@ -269,14 +272,15 @@ class ShapEngine:
         # Binary classifier: sv may be [neg_class, pos_class] list
         if isinstance(sv, list):
             shap_matrix = sv[1]
-            base_val = (
-                self.explainer.expected_value[1]
-                if isinstance(self.explainer.expected_value, (list, np.ndarray))
-                else float(self.explainer.expected_value)
-            )
         else:
             shap_matrix = sv
-            base_val = float(self.explainer.expected_value)
+
+        ev = self.explainer.expected_value
+        if isinstance(ev, (list, np.ndarray)):
+            arr = np.ravel(ev)
+            base_val = float(arr[1] if len(arr) > 1 and isinstance(sv, list) else arr[0])
+        else:
+            base_val = float(ev)
         return shap_matrix, base_val
 
     # ------------------------------------------------------------------
@@ -441,7 +445,7 @@ class ShapEngine:
         -------------
         [
             {"feature": "hesitation_score",  "importance": 0.612, "direction": "increases_abandonment"},
-            {"feature": "trust_score",       "importance": -0.211, "direction": "decreases_abandonment"},
+            {"feature": "trust_score", "importance": -0.211, "direction": "decreases_abandonment"},
             ...
         ]
 

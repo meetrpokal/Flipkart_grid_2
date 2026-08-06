@@ -36,6 +36,10 @@ logger = logging.getLogger("flipkart.orchestrator")
 
 def verify_data() -> bool:
     """Verify that the synthetic shopping session dataset exists."""
+    if os.environ.get("VERCEL"):
+        logger.info("Vercel environment detected: skipping local dataset generation.")
+        return True
+
     parquet = Path(config.SYNTHETIC_PARQUET)
     csv = Path(config.SYNTHETIC_CSV)
     
@@ -60,6 +64,9 @@ def verify_models() -> bool:
     reg = model_dir / "regressor.json"
     
     if not (clf.is_file() and reg.is_file()):
+        if os.environ.get("VERCEL"):
+            logger.warning("Trained XGBoost models not found in %s during Vercel boot.", model_dir)
+            return True
         logger.warning("Trained XGBoost models not found in %s.", model_dir)
         logger.info("Executing training pipeline (this may take ~60-90 seconds)...")
         try:
@@ -78,6 +85,9 @@ def verify_knowledge_base() -> bool:
     kb_path = _PROJECT_ROOT / "cart_abandonment_ml" / "knowledge" / "knowledge_base.json"
     
     if not kb_path.is_file():
+        if os.environ.get("VERCEL"):
+            logger.info("Vercel environment detected: using fallback knowledge base.")
+            return True
         logger.warning("Knowledge base JSON not found at %s.", kb_path)
         logger.info("Generating 200 vector documents...")
         try:
@@ -100,8 +110,8 @@ def verify_retrieval_index() -> bool:
         logger.info("RAG vector index database verified.")
         return True
     except Exception as exc:
-        logger.error("Failed to verify retrieval index: %s", exc)
-        return False
+        logger.warning("Failed to verify retrieval index: %s. Continuing with fallback retriever.", exc)
+        return True
 
 
 def start_api_server():

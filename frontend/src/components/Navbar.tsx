@@ -55,13 +55,13 @@ const Navbar: React.FC = () => {
         <div className="hidden xl:flex items-center gap-2 mr-2 bg-slate-900/60 px-2.5 py-1 rounded-md border border-white/5 font-mono text-[11px]">
           <Cpu size={12} className="text-slate-400" />
           <span title="Feature Agent Active" className="flex items-center gap-1 text-slate-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#60a5fa] shadow-[0_0_6px_#60a5fa]" /> Feature
+            <span className="w-1.5 h-1.5 rounded-full bg-[#60a5fa] shadow-[0_0_6px_#60a5fa]" /> {t("Feature", language)}
           </span>
           <span title="Reasoning Agent Active" className="flex items-center gap-1 text-slate-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#a78bfa] shadow-[0_0_6px_#a78bfa]" /> Reasoning
+            <span className="w-1.5 h-1.5 rounded-full bg-[#a78bfa] shadow-[0_0_6px_#a78bfa]" /> {t("Reasoning", language)}
           </span>
           <span title="Recommendation Agent Active" className="flex items-center gap-1 text-slate-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#34d399] shadow-[0_0_6px_#34d399]" /> Recommend
+            <span className="w-1.5 h-1.5 rounded-full bg-[#34d399] shadow-[0_0_6px_#34d399]" /> {t("Recommend", language)}
           </span>
         </div>
 

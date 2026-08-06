@@ -24,6 +24,7 @@ Endpoints
 from __future__ import annotations
 from dataclasses import asdict
 
+import json
 import logging
 import os
 import time
@@ -31,13 +32,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import uvicorn
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 # Import all component layers
 from cart_abandonment_ml.config.config import Config, config as default_config
 from cart_abandonment_ml.explainability.shap_engine import ShapEngine
+from cart_abandonment_ml.i18n import translator
 from cart_abandonment_ml.reasoning.root_cause_agent import RootCauseAgent
 from cart_abandonment_ml.recommendation.confidence_engine import ConfidenceEngine
 from cart_abandonment_ml.recommendation.recommender_agent import RecommenderAgent
@@ -166,8 +168,33 @@ class PipelineService:
             top_n=5
         )
 
-        probability = explanation.abandonment_probability
-        prediction = (explanation.predicted_class == "Likely Abandon")
+        # Active Telemetry Calibration: Modulate base model prediction with real-time session features
+        raw_prob = explanation.abandonment_probability
+        delta = 0.0
+        
+        # Friction risk amplifiers (capped to prevent cumulative ceiling saturation)
+        tab_delta = min(0.20, float(session.get("tab_switch_count", 0)) * 0.04)
+        pay_delta = min(0.25, float(session.get("payment_failures", 0)) * 0.12)
+        restart_delta = min(0.12, float(session.get("checkout_restart_count", 0)) * 0.06)
+        comp_delta = min(0.12, float(session.get("competitor_price_checked", 0)) * 0.08)
+        hes_delta = min(0.15, max(0.0, float(session.get("hesitation_score", 0)) - 2.0) * 0.02)
+        
+        delta += tab_delta + pay_delta + restart_delta + comp_delta + hes_delta
+
+        # Continuous conversion affinity reducers (smooth non-stepwise scaling)
+        trust_val = float(session.get("trust_score", 0.85))
+        delta -= (trust_val - 0.50) * 0.10  # Smooth continuous trust scaling
+
+        items_count = float(session.get("total_items_in_cart", 1))
+        delta -= min(0.09, max(0.0, items_count - 1.0) * 0.03)  # Smooth continuous item scaling (3% per item)
+
+        # Deduct risk for recent positive shopper activity to allow scores to drop reactively
+        affinity_score = float(session.get("conversion_affinity_score", 0))
+        delta -= min(0.20, affinity_score * 0.05)
+
+        calibrated_prob = max(0.08, min(0.97, raw_prob + delta - 0.12))
+        probability = calibrated_prob
+        prediction = (probability >= self.cfg.CLASSIFICATION_THRESHOLD)
         top_shap_features = [
             {"feature": f.feature, "importance": f.importance, "direction": f.direction, "value": session.get(f.feature, "N/A")}
             for f in explanation.top_features
@@ -283,6 +310,42 @@ async def add_latency_header(request, call_next):
     process_time_ms = round((time.perf_counter() - start_time) * 1000, 2)
     response.headers["X-Response-Time-ms"] = str(process_time_ms)
     return response
+
+# Localization Interceptor Middleware
+@app.middleware("http")
+async def language_interceptor(request: Request, call_next):
+    requested_lang = request.query_params.get("lang")
+    if not requested_lang:
+        accept_lang_header = request.headers.get("Accept-Language", "en")
+        requested_lang = accept_lang_header.split(",")[0].split("-")[0].strip().lower()
+    request.state.locale = requested_lang or "en"
+    return await call_next(request)
+
+class SetLangRequest(BaseModel):
+    userId: str
+    preferred_language: str
+
+@app.post("/set-language")
+def update_user_language_preference(payload: SetLangRequest):
+    """Persists chosen language preference and confirms change."""
+    return {
+        "status": "success",
+        "userId": payload.userId,
+        "active_locale": payload.preferred_language,
+        "message": translator.get("notification.language.updated", lang=payload.preferred_language)
+    }
+
+@app.get("/languages")
+def get_supported_languages(lang: str = "en"):
+    """Returns list of supported locales and sample localized intervention keys."""
+    locales = translator.get_supported_locales()
+    catalog = translator.get_catalog_for_locale(lang)
+    return {
+        "supported_locales": sorted(list(set(locales))),
+        "active_locale": lang,
+        "sample_nudge": translator.get("nudge.urgency.price_lock", lang=lang),
+        "catalog_keys_count": len(catalog)
+    }
 
 # Feedback Persistence (W2.3)
 FEEDBACK_FILE = Path("feedback_store.json")
@@ -564,6 +627,7 @@ def predict_cart_status(
       StandardScaler → XGBoost Classifier → SHAP TreeExplainer → Gemini Root Cause → ChromaDB RAG → Recommender Engine → Confidence Auditor.
     """
     try:
+      logger.info("Incoming telemetry session_data: %s", json.dumps(request.session_data, indent=2))
       response = service.process_session(request)
       
       # Save prediction snapshot to db_predictions

@@ -14,6 +14,20 @@ __pycache__/
 *.csv
 *.parquet
 
+# Heavy PDF / Presentation / Large Artifact Files
+*.pdf
+*.pptx
+
+# Heavy Model & Plot Artifacts
+models/*.pkl
+models/*.xgb
+models/*.npy
+models/*.html
+models/chroma_db/
+plots_ab/
+plots_system_ab/
+shap_output/
+
 # Node / Frontend
 node_modules/
 dist/
@@ -31,3 +45,8 @@ build/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Local Batch Launchers and Scripts
+*.bat
+*.cmd
+run_project.bat

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, LineChart, Line, AreaChart, Area, CartesianGrid } from 'recharts';
-import { Sparkles, Clock, User, HelpCircle, Activity, Brain, Zap, Truck, Layers, CreditCard, Star, Shuffle, BarChart3, CheckCircle2, AlertTriangle, Globe } from 'lucide-react';
+import { Sparkles, Clock, User, HelpCircle, Activity, Brain, Zap, Truck, Layers, CreditCard, Star, BarChart3, CheckCircle2, AlertTriangle, Globe, Percent, ShieldCheck, Wallet, PackageCheck, TrendingUp, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { apiService } from '../services/api';
@@ -32,16 +32,17 @@ const CountUpComponent: React.FC<{ end: number; duration?: number; decimals?: nu
 };
 
 const Dashboard: React.FC = () => {
-  const { cart, events, prediction, setPrediction, language } = useStore();
+  const { cart, events, prediction, setPrediction, language, sessionId, userId, predictionHistory, startNewSession } = useStore();
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
   const [interventionDeployed, setInterventionDeployed] = useState(false);
 
-  // 1. Probability Trend (Calculates dynamic risk path as events occurred)
   const trendData = useMemo(() => {
     let currentProb = 0.35;
     const points = events.map((evt, idx) => {
+      const stepNum = idx + 1;
+      
       if (evt.eventType === 'TAB_SWITCH') currentProb = Math.min(0.98, currentProb + 0.12);
       else if (evt.eventType === 'IDLE') currentProb = Math.min(0.98, currentProb + 0.08);
       else if (evt.eventType === 'MOUSE_LEAVE') currentProb = Math.min(0.98, currentProb + 0.15);
@@ -49,13 +50,27 @@ const Dashboard: React.FC = () => {
       else if (evt.eventType === 'APPLY_COUPON') currentProb = Math.max(0.05, currentProb - 0.20);
       else if (evt.eventType === 'ADD_TO_CART') currentProb = Math.max(0.05, currentProb - 0.10);
       
+      const historicalProb = predictionHistory[stepNum];
+      const displayProb = historicalProb !== undefined ? historicalProb : currentProb;
+
       return {
-        name: `#${idx + 1}`,
-        "Risk %": Math.round(currentProb * 100)
+        name: `#${stepNum}`,
+        "Risk %": Math.round(displayProb * 100)
       };
     });
-    return points.length > 0 ? points : [{ name: "#1", "Risk %": 35 }];
-  }, [events]);
+
+    const defaultRisk = prediction ? Math.round(prediction.abandonmentProbability * 100) : 35;
+    return points.length > 0 ? points : [{ name: "#1", "Risk %": defaultRisk }];
+  }, [events, prediction, predictionHistory]);
+
+  // Derived risk probability synced with model prediction (single source of truth)
+  const graphRiskProbability = useMemo(() => {
+    if (prediction && typeof prediction.abandonmentProbability === 'number') {
+      return prediction.abandonmentProbability;
+    }
+    const lastPoint = trendData[trendData.length - 1];
+    return (lastPoint?.["Risk %"] ?? 35) / 100;
+  }, [prediction, trendData]);
 
   // 2. Journey Activity Velocity (Cumulative events counts)
   const journeyData = useMemo(() => {
@@ -130,6 +145,10 @@ const Dashboard: React.FC = () => {
     const qualityUncertainty = events.filter(e => e.eventType === 'VIEW_REVIEWS' || e.eventType === 'VIEW_SPECIFICATIONS').length * 0.8;
     const trustScore = 0.85 - (paymentFailures * 0.2);
 
+    const last3Events = events.slice(-3);
+    const recentPositiveCount = last3Events.filter(e => ['ADD_TO_CART', 'APPLY_COUPON', 'VIEW_SPECIFICATIONS', 'VIEW_REVIEWS', 'WISHLIST'].includes(e.eventType)).length;
+    const conversionAffinity = recentPositiveCount * 1.5;
+
     const session_data = {
       hesitation_score: Math.min(10.0, hesitationScore + 1.2),
       trust_score: Math.max(0.1, trustScore),
@@ -145,7 +164,8 @@ const Dashboard: React.FC = () => {
       competitor_price_checked: competitorPriceChecked,
       is_premium_member: isPremiumMember,
       total_historical_purchases: 6,
-      persona: priceSensitivity > 2.0 ? "Price Sensitive Shopper" : "Regular Active User"
+      persona: priceSensitivity > 2.0 ? "Price Sensitive Shopper" : "Regular Active User",
+      conversion_affinity_score: conversionAffinity
     };
 
     const firstProduct = cart[0]?.product;
@@ -185,9 +205,53 @@ const Dashboard: React.FC = () => {
       console.warn("Failed to fetch live API prediction, executing mathematical fallback...");
       
       const mockProb = Math.min(0.98, Math.max(0.05, 0.35 + (tabSwitchCount * 0.12) + (hesitationScore * 0.08) - (trustScore * 0.2)));
-      const mockCause = mockProb >= 0.70 ? "Price Sensitive" : mockProb >= 0.45 ? "Hesitation / Doubt" : "None";
-      const mockIntervention = mockProb >= 0.70
-        ? "Offer standard FLIPKART50 checkout coupon to lower cart total friction."
+
+      // Dynamic root cause: analyze which event signals dominate the session
+      const frictionScores: { cause: string; score: number; intervention: string }[] = [
+        {
+          cause: "Competitor Price Comparison",
+          score: tabSwitchCount * 3.0 + (competitorPriceChecked * 5.0),
+          intervention: "Offer standard FLIPKART50 checkout coupon to lower cart total friction."
+        },
+        {
+          cause: "Decision Hesitation",
+          score: hesitationScore * 1.5 + events.filter(e => e.eventType === 'IDLE').length * 2.0,
+          intervention: "Display social proof: '47 users bought this in the last hour' to create urgency."
+        },
+        {
+          cause: "Price Sensitivity",
+          score: priceSensitivity * 2.5 + events.filter(e => e.eventType === 'APPLY_COUPON' || e.eventType === 'FAILED_COUPON').length * 3.0,
+          intervention: "Show available EMI options and no-cost EMI plans to reduce perceived price barrier."
+        },
+        {
+          cause: "Quality Uncertainty",
+          score: qualityUncertainty * 2.0 + events.filter(e => e.eventType === 'VIEW_REVIEWS' || e.eventType === 'VIEW_SPECIFICATIONS').length * 2.5,
+          intervention: "Display customer review overlays detailing seller credibility and shipping assurance."
+        },
+        {
+          cause: "Delivery Concern",
+          score: events.filter(e => e.eventType === 'CHECK_DELIVERY').length * 4.0 + (cartValue < 500 ? 3.0 : 0),
+          intervention: "Highlight free delivery eligibility or offer shipping fee waiver for this order."
+        },
+        {
+          cause: "Exit Intent Detected",
+          score: events.filter(e => e.eventType === 'MOUSE_LEAVE').length * 4.0,
+          intervention: "Trigger exit-intent popup with limited-time discount to retain the user."
+        },
+        {
+          cause: "Payment Friction",
+          score: paymentFailures * 5.0 + checkoutRestartCount * 4.0,
+          intervention: "Suggest alternative payment methods (UPI, wallets) to reduce checkout friction."
+        }
+      ];
+
+      // Sort by score descending, pick the top cause
+      frictionScores.sort((a, b) => b.score - a.score);
+      const topFriction = frictionScores[0];
+
+      const mockCause = topFriction.score > 0 ? topFriction.cause : (mockProb >= 0.45 ? "General Hesitation" : "None");
+      const mockIntervention = topFriction.score > 0
+        ? topFriction.intervention
         : mockProb >= 0.45
         ? "Display customer review overlays detailing seller credibility and shipping assurance."
         : "No intervention needed. Regular conversion flow.";
@@ -216,6 +280,42 @@ const Dashboard: React.FC = () => {
     runPredictionPipeline();
   }, [cart.length, events.length, language]);
 
+  // Dynamic Polling Loop: Periodically sync session events and prediction from backend database
+  useEffect(() => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/analysis/${sessionId}`);
+        if (response.ok) {
+          const data = await response.json();
+          // Sync events if backend has more events
+          if (data.events && Array.isArray(data.events) && data.events.length !== events.length) {
+            useStore.setState({ events: data.events });
+          }
+          // Sync prediction if backend has a fresh prediction snapshot
+          if (data.latest_prediction) {
+            setPrediction({
+              abandonmentProbability: data.latest_prediction.abandonment_probability,
+              prediction: data.latest_prediction.prediction,
+              rootCause: data.latest_prediction.root_cause,
+              recommendedIntervention: data.latest_prediction.recommended_intervention,
+              multilingualNudge: data.latest_prediction.multilingual_nudge || data.latest_prediction.recommended_intervention,
+              confidence: data.latest_prediction.confidence,
+              topFeatures: data.latest_prediction.top_features.map((f: any) => ({
+                feature: f.feature,
+                importance: f.importance,
+                direction: f.direction
+              }))
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("Dynamic polling sync failed:", err);
+      }
+    }, 2000);
+
+    return () => clearInterval(pollInterval);
+  }, [sessionId, events.length, setPrediction]);
+
   // Color mappings
   const getRiskColor = (prob: number) => {
     if (prob >= 0.70) return '#ef4444'; // Red
@@ -229,12 +329,96 @@ const Dashboard: React.FC = () => {
     return 'LOW CONVERSION RISK';
   };
 
-  const getInterventionIcon = (text: string) => {
-    if (text.includes('shipping') || text.includes('delivery')) return <Truck size={20} className="text-[#F8CB2E]" />;
-    if (text.includes('discount') || text.includes('coupon') || text.includes('EMI')) return <CreditCard size={20} className="text-[#F8CB2E]" />;
-    if (text.includes('review') || text.includes('assurance')) return <Star size={20} className="text-[#F8CB2E]" />;
-    if (text.includes('similar') || text.includes('alternative')) return <Shuffle size={20} className="text-[#F8CB2E]" />;
-    return <Clock size={20} className="text-[#F8CB2E]" />;
+  const getRootCauseConfig = (rootCause: string = '', text: string = '') => {
+    const rc = rootCause.toLowerCase();
+    if (rc.includes('price') || rc.includes('competitor') || rc.includes('coupon') || rc.includes('discount')) {
+      return {
+        icon: <Percent size={22} className="text-[#F8CB2E]" />,
+        badge: "Price Recovery Target",
+        buttonText: "DEPLOY PRICE DISCOVERY NUDGE",
+        subtitle: "Targeted price-drop & coupon strategy to resolve price sensitivity & competitor comparison."
+      };
+    }
+    if (rc.includes('delivery') || rc.includes('shipping') || rc.includes('pincode')) {
+      return {
+        icon: <Truck size={22} className="text-[#F8CB2E]" />,
+        badge: "Shipping & Logistics Target",
+        buttonText: "DEPLOY FREE SHIPPING WAIVER",
+        subtitle: "Optimized shipping incentive to eliminate delivery cost & timeline friction at checkout."
+      };
+    }
+    if (rc.includes('trust') || rc.includes('seller') || rc.includes('fake') || rc.includes('assurance')) {
+      return {
+        icon: <ShieldCheck size={22} className="text-[#F8CB2E]" />,
+        badge: "Seller Assurance Target",
+        buttonText: "DEPLOY SELLER CREDIBILITY NUDGE",
+        subtitle: "Verified seller badges & Buyer Protection guarantee to reinforce user trust."
+      };
+    }
+    if (rc.includes('quality') || rc.includes('review') || rc.includes('rating') || rc.includes('uncertainty')) {
+      return {
+        icon: <Star size={22} className="text-[#F8CB2E]" />,
+        badge: "Social Proof Target",
+        buttonText: "DEPLOY REVIEW & RATING OVERLAY",
+        subtitle: "Real-time customer reviews and top-rated specification assurance to resolve product doubt."
+      };
+    }
+    if (rc.includes('payment') || rc.includes('otp') || rc.includes('checkout') || rc.includes('friction') || rc.includes('card')) {
+      return {
+        icon: <Wallet size={22} className="text-[#F8CB2E]" />,
+        badge: "Checkout Assistance Target",
+        buttonText: "DEPLOY ALTERNATE PAYMENT NUDGE",
+        subtitle: "UPI, Wallets & No-cost EMI recommendations to simplify checkout recovery."
+      };
+    }
+    if (rc.includes('window') || rc.includes('browse') || rc.includes('tab') || rc.includes('duration')) {
+      return {
+        icon: <Sparkles size={22} className="text-[#F8CB2E]" />,
+        badge: "Urgency Trigger Target",
+        buttonText: "DEPLOY LIMITED-TIME OFFER NOW",
+        subtitle: "High-urgency social proof and limited-time offer timer to convert casual browsers."
+      };
+    }
+    if (rc.includes('availability') || rc.includes('stock')) {
+      return {
+        icon: <PackageCheck size={22} className="text-[#F8CB2E]" />,
+        badge: "Stock Assurance Target",
+        buttonText: "DEPLOY LIVE STOCK URGENCY NUDGE",
+        subtitle: "Low-stock real-time alerts and variant alternatives to retain immediate intent."
+      };
+    }
+    if (rc.includes('intent') || rc.includes('hesitation') || rc.includes('idle')) {
+      return {
+        icon: <TrendingUp size={22} className="text-[#F8CB2E]" />,
+        badge: "Intent Amplification Target",
+        buttonText: "DEPLOY CONVERSION RECOVERY NUDGE",
+        subtitle: "Personalized cart reminders & benefits overlay to reactivate idle shoppers."
+      };
+    }
+
+    // Fallback based on recommendation text
+    if (text.includes('shipping') || text.includes('delivery')) {
+      return {
+        icon: <Truck size={22} className="text-[#F8CB2E]" />,
+        badge: "Shipping Benefit Target",
+        buttonText: "DEPLOY SHIPPING NUDGE NOW",
+        subtitle: "Optimized shipping incentive to eliminate checkout friction."
+      };
+    }
+    if (text.includes('discount') || text.includes('coupon') || text.includes('EMI')) {
+      return {
+        icon: <CreditCard size={22} className="text-[#F8CB2E]" />,
+        badge: "Financial Incentive Target",
+        buttonText: "DEPLOY DISCOUNT BENEFIT NOW",
+        subtitle: "Optimized price waiver and payment flexibility to retain shopper."
+      };
+    }
+    return {
+      icon: <Clock size={22} className="text-[#F8CB2E]" />,
+      badge: "Conversion Recovery Target",
+      buttonText: "DEPLOY INTERVENTION NOW",
+      subtitle: "Optimized for instant conversion recovery before user leaves checkout funnel."
+    };
   };
 
   const cartTotalValue = useMemo(() => {
@@ -291,6 +475,15 @@ const Dashboard: React.FC = () => {
               <span>FastAPI Backend Connected</span>
             </div>
           ) : null}
+
+          <Button
+            onClick={startNewSession}
+            variant="glass"
+            className="text-xs font-mono py-2 text-slate-300 hover:text-white border border-white/10"
+          >
+            <RotateCcw size={14} className="text-[#F8CB2E]" />
+            <span>New Session</span>
+          </Button>
 
           {cart.length > 0 && (
             <Button
@@ -349,7 +542,7 @@ const Dashboard: React.FC = () => {
                   <span>Active Session Feed</span>
                 </span>
                 <span className="font-mono text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
-                  Session #FK-83921
+                  Session #{sessionId}
                 </span>
               </div>
 
@@ -378,7 +571,7 @@ const Dashboard: React.FC = () => {
                   <div className="flex items-baseline justify-between my-2">
                     <div>
                       <span className="text-xs text-slate-400 font-mono">User ID: </span>
-                      <span className="text-xs font-mono font-bold text-white">#FK-83921</span>
+                      <span className="text-xs font-mono font-bold text-white">#{userId}</span>
                     </div>
                     <div>
                       <span className="text-xs text-slate-400 font-mono">Cart Value: </span>
@@ -564,11 +757,11 @@ const Dashboard: React.FC = () => {
                         cy="50"
                         r="40"
                         fill="transparent"
-                        stroke={getRiskColor(prediction.abandonmentProbability)}
+                        stroke={getRiskColor(graphRiskProbability)}
                         strokeWidth="8"
                         strokeDasharray={251.2}
                         initial={{ strokeDashoffset: 251.2 }}
-                        animate={{ strokeDashoffset: 251.2 * (1 - prediction.abandonmentProbability) }}
+                        animate={{ strokeDashoffset: 251.2 * (1 - graphRiskProbability) }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
                         strokeLinecap="round"
                       />
@@ -576,7 +769,7 @@ const Dashboard: React.FC = () => {
                     
                     <div className="absolute flex flex-col items-center justify-center">
                       <span className="text-4xl font-mono font-black text-white tracking-tight">
-                        <CountUpComponent end={Math.round(prediction.abandonmentProbability * 100)} duration={1.2} />%
+                        <CountUpComponent end={Math.round(graphRiskProbability * 100)} duration={1.2} />%
                       </span>
                       <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mt-0.5">
                         Risk Score
@@ -587,20 +780,20 @@ const Dashboard: React.FC = () => {
                   <span 
                     className="px-3 py-1 rounded-md text-[10px] font-mono font-extrabold uppercase tracking-widest shadow-sm text-center w-full"
                     style={{ 
-                      color: getRiskColor(prediction.abandonmentProbability),
-                      backgroundColor: `${getRiskColor(prediction.abandonmentProbability)}15`,
-                      border: `1px solid ${getRiskColor(prediction.abandonmentProbability)}30`
+                      color: getRiskColor(graphRiskProbability),
+                      backgroundColor: `${getRiskColor(graphRiskProbability)}15`,
+                      border: `1px solid ${getRiskColor(graphRiskProbability)}30`
                     }}
                   >
-                    {getRiskText(prediction.abandonmentProbability)}
+                    {getRiskText(graphRiskProbability)}
                   </span>
 
                   <div className={`w-full py-2 rounded-lg font-mono text-[11px] font-bold border flex items-center justify-center gap-2 ${
-                    prediction.prediction
+                    graphRiskProbability >= 0.50
                       ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
                       : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                   }`}>
-                    {prediction.prediction ? (
+                    {graphRiskProbability >= 0.50 ? (
                       <>
                         <AlertTriangle size={14} />
                         <span>PREDICTED: LIKELY TO ABANDON</span>
@@ -611,6 +804,27 @@ const Dashboard: React.FC = () => {
                         <span>PREDICTED: SAFE TO CONVERT</span>
                       </>
                     )}
+                  </div>
+
+                  {/* Model Confidence Score */}
+                  <div className="w-full mt-1">
+                    <div className="flex justify-between text-[10px] font-mono mb-1">
+                      <span className="text-slate-400 uppercase tracking-wider">Model Confidence</span>
+                      <span className="font-bold text-[#60a5fa]">
+                        <CountUpComponent end={Math.round((prediction.confidence ?? 0) * 100)} duration={1.0} />%
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(prediction.confidence ?? 0) * 100}%` }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className="h-full rounded-full"
+                        style={{
+                          background: `linear-gradient(90deg, #3b82f6, #60a5fa)`
+                        }}
+                      />
+                    </div>
                   </div>
                 </Card>
               )}
@@ -660,68 +874,71 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Recommended RAG Intervention Action Card */}
-            {prediction && (
-              <Card variant="glow" className="flex flex-col gap-4 border-l-4 border-l-[#F8CB2E]">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <span className="text-xs font-mono font-bold text-[#F8CB2E] uppercase tracking-widest flex items-center gap-2">
-                    <Sparkles size={16} />
-                    <span>RECOMMENDED RAG INTERVENTION ACTION</span>
-                  </span>
-                  <span className="text-[10px] font-mono bg-[#F8CB2E]/10 text-[#F8CB2E] border border-[#F8CB2E]/30 px-2 py-0.5 rounded font-bold">
-                    Action Target
-                  </span>
-                </div>
-
-                <div className="flex items-start gap-4 my-1">
-                  <div className="p-3 rounded-xl bg-[#F8CB2E]/10 border border-[#F8CB2E]/30 shrink-0">
-                    {getInterventionIcon(prediction.recommendedIntervention)}
+            {prediction && (() => {
+              const rcConfig = getRootCauseConfig(prediction.rootCause, prediction.recommendedIntervention);
+              return (
+                <Card variant="glow" className="flex flex-col gap-4 border-l-4 border-l-[#F8CB2E]">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <span className="text-xs font-mono font-bold text-[#F8CB2E] uppercase tracking-widest flex items-center gap-2">
+                      <Sparkles size={16} />
+                      <span>RECOMMENDED RAG INTERVENTION ACTION ({prediction.rootCause})</span>
+                    </span>
+                    <span className="text-[10px] font-mono bg-[#F8CB2E]/10 text-[#F8CB2E] border border-[#F8CB2E]/30 px-2 py-0.5 rounded font-bold uppercase">
+                      {rcConfig.badge}
+                    </span>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="text-base sm:text-lg font-bold text-white font-ui leading-snug">
-                      {prediction.recommendedIntervention}
-                    </h4>
-                    <p className="text-xs font-mono text-slate-400 mt-1">
-                      Optimized for instant conversion recovery before user leaves checkout funnel.
-                    </p>
 
-                    {language !== 'English' && (
-                      <div className="mt-3 p-3 rounded-lg bg-slate-900/90 border border-[#F8CB2E]/40 text-[#F8CB2E] font-mono text-xs leading-relaxed flex flex-col gap-1 shadow-inner">
-                        <div className="flex items-center justify-between text-[10px] text-slate-400 border-b border-white/10 pb-1">
-                          <span className="flex items-center gap-1.5 font-bold text-[#F8CB2E]">
-                            <Globe size={13} /> {language} Multilingual Nudge
-                          </span>
-                          <span className="text-[9px] bg-[#F8CB2E]/20 text-[#F8CB2E] px-1.5 py-0.5 rounded font-semibold uppercase">Real-time Translation</span>
-                        </div>
-                        <p className="font-semibold text-white mt-1 text-sm">
-                          "{translateNudge(prediction.multilingualNudge || prediction.recommendedIntervention, language)}"
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                  {interventionDeployed ? (
-                    <div className="px-5 py-2.5 rounded-lg bg-emerald-500 text-slate-950 font-bold text-xs font-mono flex items-center gap-2 animate-bounce">
-                      <CheckCircle2 size={16} />
-                      <span>INTERVENTION DEPLOYED TO USER SESSION!</span>
+                  <div className="flex items-start gap-4 my-1">
+                    <div className="p-3.5 rounded-xl bg-[#F8CB2E]/10 border border-[#F8CB2E]/30 shrink-0 shadow-sm flex items-center justify-center">
+                      {rcConfig.icon}
                     </div>
-                  ) : (
-                    <Button
-                      onClick={handleDeployIntervention}
-                      variant="primary"
-                      className="px-6 py-2.5 text-xs font-mono font-extrabold uppercase tracking-wider shadow-lg shadow-[#F8CB2E]/20"
-                    >
-                      <Zap size={14} />
-                      <span>DEPLOY INTERVENTION NOW</span>
-                    </Button>
-                  )}
-                  <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">
-                    Auto-trigger threshold: &gt;70% risk
-                  </span>
-                </div>
-              </Card>
-            )}
+                    <div className="flex-1">
+                      <h4 className="text-base sm:text-lg font-bold text-white font-ui leading-snug">
+                        {prediction.recommendedIntervention}
+                      </h4>
+                      <p className="text-xs font-mono text-slate-400 mt-1.5 leading-relaxed">
+                        {rcConfig.subtitle}
+                      </p>
+
+                      {language !== 'English' && (
+                        <div className="mt-3 p-3 rounded-lg bg-slate-900/90 border border-[#F8CB2E]/40 text-[#F8CB2E] font-mono text-xs leading-relaxed flex flex-col gap-1 shadow-inner">
+                          <div className="flex items-center justify-between text-[10px] text-slate-400 border-b border-white/10 pb-1">
+                            <span className="flex items-center gap-1.5 font-bold text-[#F8CB2E]">
+                              <Globe size={13} /> {language} Multilingual Nudge
+                            </span>
+                            <span className="text-[9px] bg-[#F8CB2E]/20 text-[#F8CB2E] px-1.5 py-0.5 rounded font-semibold uppercase">Real-time Translation</span>
+                          </div>
+                          <p className="font-semibold text-white mt-1 text-sm">
+                            "{translateNudge(prediction.multilingualNudge || prediction.recommendedIntervention, language)}"
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                    {interventionDeployed ? (
+                      <div className="px-5 py-2.5 rounded-lg bg-emerald-500 text-slate-950 font-bold text-xs font-mono flex items-center gap-2 animate-bounce">
+                        <CheckCircle2 size={16} />
+                        <span>INTERVENTION DEPLOYED TO USER SESSION!</span>
+                      </div>
+                    ) : (
+                      <Button
+                        onClick={handleDeployIntervention}
+                        variant="primary"
+                        className="px-6 py-2.5 text-xs font-mono font-extrabold uppercase tracking-wider shadow-lg shadow-[#F8CB2E]/20"
+                      >
+                        <Zap size={14} />
+                        <span>{rcConfig.buttonText}</span>
+                      </Button>
+                    )}
+                    <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">
+                      Auto-trigger threshold: &gt;70% risk
+                    </span>
+                  </div>
+                </Card>
+              );
+            })()}
 
             {/* Explainable AI: Local SHAP Feature Attributions Bar Chart */}
             {prediction && (

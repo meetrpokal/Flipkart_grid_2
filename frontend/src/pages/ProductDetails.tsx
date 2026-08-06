@@ -312,7 +312,7 @@ const ProductDetails: React.FC = () => {
                 <span>{product.rating}</span>
               </span>
               <span className="text-xs text-slate-400">
-                ({totalReviewsCount.toLocaleString()} Ratings & {product.reviewCount || 342} Reviews)
+                ({totalReviewsCount.toLocaleString()} Ratings & {(product.reviewCount || 342).toLocaleString()} Reviews)
               </span>
               <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                 In Stock
@@ -440,7 +440,7 @@ const ProductDetails: React.FC = () => {
               activeTab === 'reviews' ? 'text-white' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            Customer Reviews ({filteredReviews.length})
+            Customer Reviews ({(product.reviewCount || 342).toLocaleString()})
             {activeTab === 'reviews' && (
               <motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#F8CB2E]" layoutId="detailsTabLine" />
             )}

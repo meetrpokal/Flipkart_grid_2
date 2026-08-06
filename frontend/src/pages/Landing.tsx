@@ -289,15 +289,15 @@ const Landing: React.FC = () => {
           {/* Quick Metrics Bar */}
           <div className="grid grid-cols-3 gap-3 font-mono text-xs pt-4 border-t border-white/10">
             <div>
-              <div className="text-slate-400">Inference Speed</div>
+              <div className="text-slate-400">{t("Inference Speed", language)}</div>
               <div className="text-base font-bold text-white mt-0.5">~1.2 ms</div>
             </div>
             <div>
-              <div className="text-slate-400">SHAP Attributions</div>
+              <div className="text-slate-400">{t("SHAP Attributions", language)}</div>
               <div className="text-base font-bold text-[#60a5fa] mt-0.5">100% Native</div>
             </div>
             <div>
-              <div className="text-slate-400">RAG Vector Match</div>
+              <div className="text-slate-400">{t("RAG Vector Match", language)}</div>
               <div className="text-base font-bold text-[#F8CB2E] mt-0.5">&lt; 180 ms</div>
             </div>
           </div>
@@ -318,7 +318,7 @@ const Landing: React.FC = () => {
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#F8CB2E] animate-ping" />
-                <span className="font-mono text-xs font-bold text-white uppercase tracking-wider">Interactive 3D AI Orb</span>
+                <span className="font-mono text-xs font-bold text-white uppercase tracking-wider">{t("Interactive 3D AI Orb", language)}</span>
               </div>
               <span className="text-[10px] font-mono bg-[#60a5fa]/20 text-[#60a5fa] border border-[#60a5fa]/30 px-2 py-0.5 rounded font-bold">
                 220 Signals
@@ -328,7 +328,7 @@ const Landing: React.FC = () => {
             <div className="flex items-center justify-between text-xs font-mono text-slate-300">
               <div className="flex items-center gap-1.5">
                 <Navigation size={14} className="text-[#F8CB2E] animate-spin" />
-                <span>Drag Mouse or Press <strong>← ↑ → ↓</strong></span>
+                <span>{t("Drag Mouse or Press", language)} <strong>← ↑ → ↓</strong></span>
               </div>
               <span className="text-[#34d399] font-bold">60 FPS</span>
             </div>
@@ -343,29 +343,29 @@ const Landing: React.FC = () => {
         <div className="text-left flex flex-col gap-4">
           <h2 className="text-3xl font-extrabold text-white tracking-tight font-ui">{t("Protecting Merchant Margins while Maximising Conversions", language)}</h2>
           <p className="text-slate-400 font-mono text-sm leading-relaxed">
-            Generic e-commerce platforms push heavy discount coupons to every abandoning user, eroding merchant margins and training shoppers to wait for price drops. 
+            {t("Generic e-commerce platforms push heavy discount coupons to every abandoning user, eroding merchant margins and training shoppers to wait for price drops.", language)}
           </p>
           <p className="text-slate-400 font-mono text-sm leading-relaxed">
-            Our system solves this. An XGBoost Classifier estimates abandonment probability in real time, TreeSHAP maps local attributions to isolate exact friction causes, and a ChromaDB RAG Engine retrieves cost-efficient targeted interventions.
+            {t("Our system solves this. An XGBoost Classifier estimates abandonment probability in real time, TreeSHAP maps local attributions to isolate exact friction causes, and a ChromaDB RAG Engine retrieves cost-efficient targeted interventions.", language)}
           </p>
         </div>
         
         <Card variant="glow" className="flex flex-col gap-6 text-left">
           <h3 className="text-lg font-bold text-[#F8CB2E] flex items-center gap-2 font-ui">
             <ShieldAlert className="text-[#F8CB2E]" />
-            <span>Real-time Risk Performance</span>
+            <span>{t("Real-time Risk Performance", language)}</span>
           </h3>
           <div className="grid grid-cols-3 gap-4 font-mono">
             <div className="p-3 bg-[#0d1220] rounded-lg border border-white/10">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Inference Speed</span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t("Inference Speed", language)}</span>
               <div className="text-lg font-black text-white mt-1">~1.2 ms</div>
             </div>
             <div className="p-3 bg-[#0d1220] rounded-lg border border-white/10">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">SHAP Resolution</span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t("SHAP Resolution", language)}</span>
               <div className="text-lg font-black text-white mt-1">100% Native</div>
             </div>
             <div className="p-3 bg-[#0d1220] rounded-lg border border-white/10">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">RAG Retrieval</span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t("RAG Retrieval", language)}</span>
               <div className="text-lg font-black text-[#F8CB2E] mt-1">&lt; 180 ms</div>
             </div>
           </div>
@@ -375,8 +375,8 @@ const Landing: React.FC = () => {
       {/* 3. AI WORKFLOW DIAGRAM */}
       <motion.section className="flex flex-col gap-8 text-center relative z-10" variants={itemVariants}>
         <div className="flex flex-col gap-2">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-white font-ui">The Multi-Agent Inference Pipeline</h2>
-          <p className="text-xs font-mono text-slate-400">Sequential execution from telemetry signal capture to personalized intervention deployment</p>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-white font-ui">{t("The Multi-Agent Inference Pipeline", language)}</h2>
+          <p className="text-xs font-mono text-slate-400">{t("Sequential execution from telemetry signal capture to personalized intervention deployment", language)}</p>
         </div>
 
         {/* Workflow steps diagram */}
@@ -402,33 +402,33 @@ const Landing: React.FC = () => {
 
       {/* 4. FEATURES GRID */}
       <motion.section className="flex flex-col gap-8 text-left relative z-10" variants={itemVariants}>
-        <h2 className="text-2xl md:text-3xl font-extrabold text-white text-center font-ui">System Core Features</h2>
+        <h2 className="text-2xl md:text-3xl font-extrabold text-white text-center font-ui">{t("System Core Features", language)}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="flex flex-col gap-3">
             <div className="w-8 h-8 rounded bg-[#60a5fa]/10 text-[#60a5fa] border border-[#60a5fa]/30 flex items-center justify-center">
               <Cpu size={18} />
             </div>
-            <h4 className="font-bold text-base text-white font-ui">Dual XGBoost Core</h4>
+            <h4 className="font-bold text-base text-white font-ui">{t("Dual XGBoost Core", language)}</h4>
             <p className="text-xs font-mono text-slate-400 leading-relaxed">
-              Dual-model backend utilizing high-capacity XGBClassifier for probability estimation and XGBRegressor for baseline comparison.
+              {t("Dual-model backend utilizing high-capacity XGBClassifier for probability estimation and XGBRegressor for baseline comparison.", language)}
             </p>
           </Card>
           <Card className="flex flex-col gap-3">
             <div className="w-8 h-8 rounded bg-[#a78bfa]/10 text-[#a78bfa] border border-[#a78bfa]/30 flex items-center justify-center">
               <BarChart2 size={18} />
             </div>
-            <h4 className="font-bold text-base text-white font-ui">Tree-Attribution SHAP</h4>
+            <h4 className="font-bold text-base text-white font-ui">{t("Tree-Attribution SHAP", language)}</h4>
             <p className="text-xs font-mono text-slate-400 leading-relaxed">
-              Provides mathematical guarantees on local feature explanations to pinpoint conversion obstacles per user session.
+              {t("Provides mathematical guarantees on local feature explanations to pinpoint conversion obstacles per user session.", language)}
             </p>
           </Card>
           <Card className="flex flex-col gap-3">
             <div className="w-8 h-8 rounded bg-[#34d399]/10 text-[#34d399] border border-[#34d399]/30 flex items-center justify-center">
               <Database size={18} />
             </div>
-            <h4 className="font-bold text-base text-white font-ui">ChromaDB RAG Engine</h4>
+            <h4 className="font-bold text-base text-white font-ui">{t("ChromaDB RAG Engine", language)}</h4>
             <p className="text-xs font-mono text-slate-400 leading-relaxed">
-              Queries a 200-document vector knowledge base with metadata filters to match optimal intervention strategies.
+              {t("Queries a 200-document vector knowledge base with metadata filters to match optimal intervention strategies.", language)}
             </p>
           </Card>
         </div>
