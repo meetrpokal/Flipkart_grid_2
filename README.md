@@ -52,7 +52,7 @@ For the full, detailed technical architecture, 200-feature schema breakdown, 7-l
 3. **Layer 3: SHAP Explainability Engine** — Calculates exact Shapley values to pinpoint top friction factors.
 4. **Layer 4: Root Cause Reasoning Agent** — Categorizes primary cause (e.g. *Unexpected Shipping Fee*, *Trust Deficit*, *Sticker Shock*).
 5. **Layer 5: RAG Retrieval (ChromaDB)** — Queries 200 vector strategy documents for semantic match.
-6. **Layer 6: Recommender Agent (Gemini LLM)** — Generates persona-tailored nudges and interventions.
+6. **Layer 6: Recommender Agent (Groq LLM)** — Generates persona-tailored nudges and interventions.
 7. **Layer 7: Confidence Engine & Risk Auditor** — Computes multi-factor decision confidence score $[0, 100\%]$.
 
 ---
